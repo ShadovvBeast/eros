@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\math_utils.py
+# hypothesis_version: 6.148.7
+
+[-5.0, 0.0, 1e-10, 1e-08, 1.0, 5.0, -500, 500, 'balance', 'coherence', 'complexity', 'cosine', 'euclidean', 'exponential', 'gaussian', 'inverse', 'l1', 'l2', 'manhattan', 'max', 'stability', 'total_discomfort', 'unit_range']

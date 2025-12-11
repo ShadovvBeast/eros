@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\logging_config.py
+# hypothesis_version: 6.148.7
+
+[0.0, 'INFO', 'autonomous_agent', 'avg_cycle_time', 'behavior_patterns', 'change', 'component', 'cycle', 'cycle_timings', 'detailed_metrics', 'error_events', 'error_message', 'error_type', 'event_type', 'execution_time', 'homeostatic_balance', 'internal_reward', 'memory_events', 'new_weight', 'old_weight', 'pathos_trajectories', 'phase_timings', 'preference_changes', 'runtime_seconds', 'salience', 'semantic_category', 'shape', 'state_norm', 'success', 'summary', 'timestamp', 'tool_name', 'tool_usage', 'total_cycles', 'total_duration', 'total_errors', 'total_memory_events', 'total_tool_calls', 'total_traces', 'w']

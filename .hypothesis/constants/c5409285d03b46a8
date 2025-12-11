@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\ethos\ethos_framework.py
+# hypothesis_version: 6.148.7
+
+[0.0, 0.2, 0.3, 0.5, 1.0, '--delete', '--force', '_', 'admin\\s+', 'advance', 'agreeableness', 'aligned', 'anxiety', 'careful', 'cautious', 'coherence', 'coherent', 'communication', 'conscientiousness', 'consistent', 'cooperation', 'curiosity', 'develop', 'discover', 'enhance', 'ethical', 'evolve', 'exploration', 'explore', 'extraversion', 'growth', 'harmful', 'helping', 'improve', 'integrated', 'investigate', 'learn', 'learning', 'logical', 'neuroticism', 'openness', 'organization', 'planning', 'privacy', 'progress', 'protect', 'question', 'research', 'responsible', 'rm\\s+-rf', 'root\\s+', 'safe', 'safety', 'secure', 'social', 'stress', 'sudo\\s+', 'unified']

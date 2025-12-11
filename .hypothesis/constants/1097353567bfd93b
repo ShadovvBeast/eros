@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\models.py
+# hypothesis_version: 6.148.7
+
+['Intention', 'MemoryTrace', 'PathosState', 'SemanticVector', 'ToolCall', 'ToolResult', 'affect_state', 'arguments', 'description', 'embedding', 'error_message', 'homeostatic_balance', 'intention_text', 'internal_reward', 'metadata', 'priority', 'result', 'reward', 'salience', 'semantic_category', 'semantic_vector', 'success', 'timestamp', 'tool_candidates', 'tool_name', 'vector']

@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\config.py
+# hypothesis_version: 6.148.7
+
+[0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.95, 1.0, 128, 512, 8080, 10000, 'AgentConfig', 'GEMINI_API_KEY', 'INFO', 'LOG_LEVEL', 'No harmful actions', 'PATHOS_DECAY_FACTOR', 'agreeableness', 'analysis', 'coherence', 'communication', 'complexity', 'conscientiousness', 'curiosity', 'data/memories.json', 'extraversion', 'file_operations', 'gemini-pro', 'growth', 'json', 'learning', 'neuroticism', 'openness', 'safety', 'stability', 'web_search']
