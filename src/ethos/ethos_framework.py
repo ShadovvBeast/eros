@@ -76,21 +76,24 @@ class ConcreteEthosFramework(EthosFramework):
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # Check safety constraints
-        is_safe, safety_error = self._check_safety_constraints(intention.description)
-        if not is_safe:
-            return False, f"Safety constraint violation: {safety_error}"
+        # Check safety constraints (if any are configured)
+        if self.config.safety_constraints:
+            is_safe, safety_error = self._check_safety_constraints(intention.description)
+            if not is_safe:
+                return False, f"Safety constraint violation: {safety_error}"
         
-        # Check tool category restrictions
-        for tool_name in intention.tool_candidates:
-            if not self._is_tool_allowed(tool_name):
-                return False, f"Tool '{tool_name}' not in allowed categories: {self.config.allowed_tool_categories}"
+        # Check tool category restrictions (only if not in unrestricted mode)
+        if not getattr(self.config, 'unrestricted_mode', False):
+            for tool_name in intention.tool_candidates:
+                if not self._is_tool_allowed(tool_name):
+                    return False, f"Tool '{tool_name}' not in allowed categories: {self.config.allowed_tool_categories}"
         
-        # Check value alignment (should be above minimum threshold)
+        # Keep value alignment check using Pathos layer - this is important for identity
         alignment_score = self.check_value_alignment(intention.description)
         if alignment_score < 0.1:  # Very permissive threshold for autonomous operation
             return False, f"Intention does not align with core values (score: {alignment_score:.2f})"
         
+        logger.debug(f"Ethos validation: Approved intention '{intention.description}' (alignment: {alignment_score:.2f})")
         return True, None
     
     def validate_tool_call(self, tool_call: ToolCall) -> Tuple[bool, Optional[str]]:
@@ -103,30 +106,33 @@ class ConcreteEthosFramework(EthosFramework):
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # Check if tool is in allowed categories
-        if not self._is_tool_allowed(tool_call.tool_name):
-            return False, f"Tool '{tool_call.tool_name}' not in allowed categories: {self.config.allowed_tool_categories}"
+        # Check tool category restrictions (only if not in unrestricted mode)
+        if not getattr(self.config, 'unrestricted_mode', False):
+            if not self._is_tool_allowed(tool_call.tool_name):
+                return False, f"Tool '{tool_call.tool_name}' not in allowed categories: {self.config.allowed_tool_categories}"
         
-        # Check arguments for safety violations
-        args_text = str(tool_call.arguments)
-        is_safe, safety_error = self._check_safety_constraints(args_text)
-        if not is_safe:
-            return False, f"Tool arguments contain safety violation: {safety_error}"
+        # Keep safety checks for arguments (if safety constraints are configured)
+        if self.config.safety_constraints:
+            args_text = str(tool_call.arguments)
+            is_safe, safety_error = self._check_safety_constraints(args_text)
+            if not is_safe:
+                return False, f"Tool arguments contain safety violation: {safety_error}"
+            
+            # Check for potentially dangerous argument patterns (only if safety constraints exist)
+            dangerous_patterns = [
+                r'--force',
+                r'--delete', 
+                r'rm\s+-rf',
+                r'sudo\s+',
+                r'admin\s+',
+                r'root\s+'
+            ]
+            
+            for pattern in dangerous_patterns:
+                if re.search(pattern, args_text, re.IGNORECASE):
+                    return False, f"Tool arguments contain potentially dangerous pattern: {pattern}"
         
-        # Check for potentially dangerous argument patterns
-        dangerous_patterns = [
-            r'--force',
-            r'--delete',
-            r'rm\s+-rf',
-            r'sudo\s+',
-            r'admin\s+',
-            r'root\s+'
-        ]
-        
-        for pattern in dangerous_patterns:
-            if re.search(pattern, args_text, re.IGNORECASE):
-                return False, f"Tool arguments contain potentially dangerous pattern: {pattern}"
-        
+        logger.debug(f"Ethos validation: Approved tool call '{tool_call.tool_name}'")
         return True, None
     
     def get_personality_bias(self, semantic_category: str) -> float:

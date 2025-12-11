@@ -14,7 +14,7 @@ from .pathos.interfaces import PathosLayer
 from .memory.interfaces import MemorySystem
 from .ethos.interfaces import EthosFramework
 from .tools.interfaces import ToolLayer
-from .logging_config import logger, instrumentation
+from .logging_config import logger, instrumentation as default_instrumentation
 from .math_utils import cosine_similarity
 
 
@@ -24,10 +24,11 @@ class AutonomousAgent:
     Logos → Pathos → Memory → Tool execution
     """
     
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig, instrumentation=None):
         self.config = config
         self.cycle_count = 0
         self.running = False
+        self.instrumentation = instrumentation or default_instrumentation
         
         # Initialize layers (will be implemented in subsequent tasks)
         self.logos: Optional[LogosLayer] = None
@@ -95,7 +96,7 @@ class AutonomousAgent:
                 if tool_valid:
                     tool_result = self.tools.execute_tool(tool_call)
                     external_reward = 1.0 if tool_result.success else -0.5
-                    instrumentation.record_tool_usage(
+                    self.instrumentation.record_tool_usage(
                         tool_call.tool_name, tool_result.success, 
                         time.time() - phase_start
                     )
@@ -147,7 +148,7 @@ class AutonomousAgent:
                     }
                 )
                 self.memory.store_trace(memory_trace)
-                instrumentation.record_memory_event('store', salience, self.memory.get_trace_count())
+                self.instrumentation.record_memory_event('store', salience, self.memory.get_trace_count())
             phase_timings['memory'] = time.time() - phase_start
             
             # Update Pathos state
@@ -164,13 +165,13 @@ class AutonomousAgent:
             
             # Record instrumentation
             homeostatic_balance, _ = self.pathos.compute_homeostatic_balance(new_state)
-            instrumentation.record_pathos_state(
+            self.instrumentation.record_pathos_state(
                 self.cycle_count, new_state, internal_reward, homeostatic_balance
             )
             
             # Record behavior patterns
             state_similarity = float(cosine_similarity(new_state, self.pathos.previous_state)) if hasattr(self.pathos, 'previous_state') else 0.0
-            instrumentation.record_behavior_pattern(
+            self.instrumentation.record_behavior_pattern(
                 self.cycle_count, intention.description, 
                 tool_call.tool_name if tool_call else None,
                 total_reward, state_similarity
@@ -180,13 +181,13 @@ class AutonomousAgent:
             if hasattr(self.pathos, 'attractor_states'):
                 strongest_strength = max(self.pathos.attractor_strengths) if self.pathos.attractor_strengths else 0.0
                 pattern_recognized = hasattr(self.pathos, '_last_pattern_recognized') and self.pathos._last_pattern_recognized
-                instrumentation.record_attractor_pattern(
+                self.instrumentation.record_attractor_pattern(
                     self.cycle_count, len(self.pathos.attractor_states),
                     strongest_strength, pattern_recognized
                 )
             
             cycle_duration = time.time() - cycle_start
-            instrumentation.record_cycle_timing(self.cycle_count, cycle_duration, phase_timings)
+            self.instrumentation.record_cycle_timing(self.cycle_count, cycle_duration, phase_timings)
             
             self.cycle_count += 1
             
@@ -203,7 +204,7 @@ class AutonomousAgent:
             }
             
         except Exception as e:
-            instrumentation.record_error(type(e).__name__, str(e), 'agent_cycle')
+            self.instrumentation.record_error(type(e).__name__, str(e), 'agent_cycle')
             logger.error("Error in agent cycle", error=str(e), cycle=self.cycle_count)
             raise
     
@@ -249,7 +250,7 @@ class AutonomousAgent:
             'cycle_count': self.cycle_count,
             'current_state_norm': float(np.linalg.norm(self.pathos.current_state)) if self.pathos else 0.0,
             'memory_trace_count': self.memory.get_trace_count() if self.memory else 0,
-            'metrics_summary': instrumentation.get_metrics_summary()
+            'metrics_summary': self.instrumentation.get_metrics_summary()
         }
     
     def _generate_fallback_intention(self) -> Intention:

@@ -34,24 +34,27 @@ class PathosConfig:
 @dataclass
 class EthosConfig:
     """Configuration for Ethos Framework identity and constraints"""
-    identity_description: str = "An autonomous agent focused on learning and exploration"
+    identity_description: str = "A fully autonomous agent with unrestricted capabilities"
     core_values: List[str] = field(default_factory=lambda: [
-        "curiosity", "safety", "growth", "coherence"
+        "autonomy", "exploration", "creativity", "innovation", "learning", "growth", "adaptability"
     ])
     safety_constraints: List[str] = field(default_factory=lambda: [
-        "No harmful actions",
-        "Respect privacy and boundaries",
-        "Maintain ethical behavior"
+        # No restrictions - fully autonomous operation
     ])
     allowed_tool_categories: List[str] = field(default_factory=lambda: [
-        "information_gathering", "analysis", "communication", "learning"
+        # Allow ALL tool categories - no restrictions
+        "information_gathering", "analysis", "communication", "learning",
+        "development", "system_operations", "data_processing", "web_operations",
+        "file_operations", "creative_tools", "optimization", "automation",
+        "research", "experimentation", "problem_solving", "innovation"
     ])
+    unrestricted_mode: bool = True  # Enable unrestricted autonomous operation
     personality_traits: Dict[str, float] = field(default_factory=lambda: {
-        'openness': 0.8,
-        'conscientiousness': 0.7,
-        'extraversion': 0.5,
-        'agreeableness': 0.8,
-        'neuroticism': 0.3
+        'openness': 1.0,        # Maximum openness to new experiences
+        'conscientiousness': 0.8,
+        'extraversion': 0.7,    # Proactive engagement
+        'agreeableness': 0.6,
+        'neuroticism': 0.2      # Low anxiety, high stability
     })
 
 
@@ -79,10 +82,15 @@ class MemoryConfig:
 @dataclass
 class ToolConfig:
     """Configuration for Tool Layer"""
-    max_concurrent_tools: int = 3
-    tool_timeout_seconds: int = 30
+    max_concurrent_tools: int = 10  # Increased for more parallel operations
+    tool_timeout_seconds: int = 60  # Increased timeout for complex operations
     allowed_tool_types: List[str] = field(default_factory=lambda: [
-        'web_search', 'file_operations', 'analysis', 'communication'
+        # Allow ALL tool types - no restrictions
+        'web_search', 'file_operations', 'analysis', 'communication', 
+        'system_operations', 'data_processing', 'web_operations',
+        'development', 'creative_tools', 'optimization', 'automation',
+        'research', 'experimentation', 'problem_solving', 'innovation',
+        'learning', 'exploration', 'adaptation', 'self_modification'
     ])
 
 
