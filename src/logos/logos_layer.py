@@ -1149,16 +1149,16 @@ class LogosLayer(LogosLayerInterface):
     
     def _select_tool_candidates(self, category: str) -> List[str]:
         """Select appropriate tool candidates for the semantic category."""
-        # Tool mappings by category
+        # Tool mappings by category - using actually registered tools
         category_tools = {
-            'exploration': ['web_search', 'file_browser', 'data_explorer'],
-            'analysis': ['data_analyzer', 'pattern_detector', 'statistics_tool'],
-            'communication': ['message_sender', 'report_generator', 'presenter'],
-            'learning': ['knowledge_base', 'tutorial_system', 'skill_tracker'],
-            'planning': ['scheduler', 'goal_tracker', 'resource_planner'],
-            'reflection': ['journal', 'self_analyzer', 'memory_browser'],
-            'creativity': ['idea_generator', 'brainstormer', 'creative_tool'],
-            'problem_solving': ['solver', 'debugger', 'optimizer']
+            'exploration': ['communication_search', 'analysis_data_processor', 'communication_echo'],
+            'analysis': ['analysis_data_processor', 'analysis_advanced_analyzer', 'system_optimizer'],
+            'communication': ['communication_echo', 'communication_search', 'creative_problem_solver'],
+            'learning': ['learning_synthesizer', 'analysis_data_processor', 'communication_search'],
+            'planning': ['system_optimizer', 'creative_problem_solver', 'analysis_data_processor'],
+            'reflection': ['analysis_data_processor', 'learning_synthesizer', 'communication_echo'],
+            'creativity': ['creative_problem_solver', 'learning_synthesizer', 'development_tool_creator'],
+            'problem_solving': ['creative_problem_solver', 'system_optimizer', 'analysis_data_processor']
         }
         
         candidates = category_tools.get(category, ['general_tool'])

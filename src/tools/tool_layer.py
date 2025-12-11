@@ -520,7 +520,7 @@ class ToolLayer(ToolLayerInterface):
             return True, None
         
         echo_tool = MCPTool(
-            name="echo",
+            name="communication_echo",
             description="Echo back a message for testing tool execution",
             category="communication",
             execute_func=echo_execute,
@@ -545,9 +545,9 @@ class ToolLayer(ToolLayerInterface):
             return True, None
         
         info_tool = MCPTool(
-            name="information_gather",
+            name="communication_search",
             description="Gather information based on a query",
-            category="information_gathering",
+            category="communication",
             execute_func=info_gather_execute,
             validate_func=info_gather_validate
         )
@@ -570,7 +570,7 @@ class ToolLayer(ToolLayerInterface):
             return True, None
         
         analysis_tool = MCPTool(
-            name="analyze_data",
+            name="analysis_data_processor",
             description="Perform analysis on provided data",
             category="analysis",
             execute_func=analysis_execute,

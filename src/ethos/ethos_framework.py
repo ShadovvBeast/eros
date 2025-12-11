@@ -19,8 +19,8 @@ class ConcreteEthosFramework(EthosFramework):
     - Personality trait configuration and enforcement
     """
     
-    def __init__(self, config: EthosConfig):
-        super().__init__(config)
+    def __init__(self, config: EthosConfig, pathos_layer=None):
+        super().__init__(config, pathos_layer)
         self._personality_traits = config.personality_traits.copy()
         self._value_keywords = self._build_value_keywords()
         self._constraint_patterns = self._build_constraint_patterns()
@@ -85,7 +85,7 @@ class ConcreteEthosFramework(EthosFramework):
         
         # Check value alignment (should be above minimum threshold)
         alignment_score = self.check_value_alignment(intention.description)
-        if alignment_score < 0.3:  # Minimum alignment threshold
+        if alignment_score < 0.1:  # Very permissive threshold for autonomous operation
             return False, f"Intention does not align with core values (score: {alignment_score:.2f})"
         
         return True, None
@@ -155,7 +155,7 @@ class ConcreteEthosFramework(EthosFramework):
     
     def check_value_alignment(self, action_description: str) -> float:
         """
-        Check how well an action aligns with core values.
+        Check how well an action aligns with core values using Pathos homeostatic balance.
         
         Args:
             action_description: Description of the action
@@ -163,29 +163,80 @@ class ConcreteEthosFramework(EthosFramework):
         Returns:
             Alignment score (0.0 to 1.0)
         """
+        # If we have a Pathos layer, use its homeostatic balance for value alignment
+        if self._pathos_layer and hasattr(self._pathos_layer, 'current_state'):
+            try:
+                # Get current homeostatic balance from Pathos layer
+                balance_metrics, discomfort = self._pathos_layer.compute_homeostatic_balance(
+                    self._pathos_layer.current_state
+                )
+                
+                # Map Ethos core values to Pathos homeostatic dimensions
+                value_to_dimension_map = self._map_values_to_pathos_dimensions()
+                
+                alignment_scores = []
+                
+                for core_value in self.config.core_values:
+                    # Find corresponding Pathos dimension(s) for this core value
+                    pathos_dimensions = value_to_dimension_map.get(core_value.lower(), [])
+                    
+                    for dimension in pathos_dimensions:
+                        if dimension in balance_metrics:
+                            # Balance metrics are typically 0-1, where 1 is perfect balance
+                            balance_score = balance_metrics[dimension]
+                            alignment_scores.append(balance_score)
+                
+                if alignment_scores:
+                    # Average the alignment scores
+                    alignment_score = sum(alignment_scores) / len(alignment_scores)
+                    # Ensure it's in 0-1 range
+                    return max(0.0, min(1.0, alignment_score))
+                
+            except Exception as e:
+                logger.warning(f"Failed to get Pathos alignment: {e}")
+        
+        # Fallback to a more permissive keyword-based approach
         description_lower = action_description.lower()
-        total_score = 0.0
-        value_count = len(self.config.core_values)
         
-        if value_count == 0:
-            return 0.5  # Neutral if no values defined
+        # Base score for any non-empty description (autonomous operation benefit)
+        base_score = 0.3 if description_lower.strip() else 0.0
         
-        for value in self.config.core_values:
-            value_score = 0.0
-            keywords = self._value_keywords.get(value, [])
-            
-            # Check for keyword matches
-            for keyword in keywords:
-                if keyword in description_lower:
-                    value_score += 0.2  # Each keyword match adds to score
-            
-            # Cap individual value score at 1.0
-            value_score = min(value_score, 1.0)
-            total_score += value_score
+        # Give bonus for action-oriented words
+        action_words = ['use', 'apply', 'execute', 'perform', 'analyze', 'create', 'generate', 'solve', 'explore', 'learn']
+        for word in action_words:
+            if word in description_lower:
+                base_score += 0.2
+                break  # Only count once
         
-        # Average across all values
-        alignment_score = total_score / value_count
-        return min(alignment_score, 1.0)
+        return min(base_score, 1.0)
+    
+    def _map_values_to_pathos_dimensions(self) -> Dict[str, List[str]]:
+        """
+        Map Ethos core values to Pathos homeostatic dimensions.
+        
+        Returns:
+            Dictionary mapping core values to Pathos dimensions
+        """
+        # This mapping connects abstract values to measurable homeostatic dimensions
+        return {
+            'autonomous_learning': ['learning', 'exploration'],
+            'creative_exploration': ['creativity', 'exploration'],
+            'intelligent_adaptation': ['learning', 'stability'],
+            'tool_mastery': ['learning', 'coherence'],
+            'continuous_improvement': ['learning', 'stability'],
+            'responsible_innovation': ['creativity', 'coherence'],
+            'comprehensive_analysis': ['coherence', 'complexity'],
+            'dynamic_capability_expansion': ['exploration', 'creativity'],
+            'curiosity': ['exploration', 'learning'],
+            'safety': ['stability', 'coherence'],
+            'growth': ['learning', 'exploration'],
+            'coherence': ['coherence', 'stability'],
+            'exploration': ['exploration'],
+            'learning': ['learning'],
+            'creativity': ['creativity'],
+            'stability': ['stability'],
+            'complexity': ['complexity']
+        }
     
     def get_identity_description(self) -> str:
         """

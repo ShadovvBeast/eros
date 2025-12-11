@@ -11,8 +11,9 @@ from ..config import EthosConfig
 class EthosFramework(ABC):
     """Abstract base class for the Ethos identity and constraint system"""
     
-    def __init__(self, config: EthosConfig):
+    def __init__(self, config: EthosConfig, pathos_layer=None):
         self.config = config
+        self._pathos_layer = pathos_layer
     
     @abstractmethod
     def validate_intention(self, intention: Intention) -> Tuple[bool, Optional[str]]:
