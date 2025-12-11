@@ -3,10 +3,13 @@ Ethos Framework implementation for identity and constraint management.
 """
 
 import re
+import logging
 from typing import List, Dict, Any, Tuple, Optional
 from .interfaces import EthosFramework
 from ..models import Intention, ToolCall
 from ..config import EthosConfig
+
+logger = logging.getLogger(__name__)
 
 
 class ConcreteEthosFramework(EthosFramework):

@@ -8,6 +8,9 @@ This module provides comprehensive visualization and analysis capabilities for:
 """
 
 import numpy as np
+import matplotlib
+# Set non-interactive backend to avoid GUI issues
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Circle
@@ -23,8 +26,13 @@ from sklearn.manifold import TSNE
 import warnings
 warnings.filterwarnings('ignore')
 
-from .logging_config import InstrumentationCollector
-from .models import MemoryTrace
+try:
+    from .logging_config import InstrumentationCollector
+    from .models import MemoryTrace
+except ImportError:
+    # Fallback for direct execution
+    from logging_config import InstrumentationCollector
+    from models import MemoryTrace
 
 
 class PathosStateVisualizer:
@@ -37,8 +45,9 @@ class PathosStateVisualizer:
         self.reward_history = deque(maxlen=history_length)
         self.time_history = deque(maxlen=history_length)
         
-        # Setup matplotlib for real-time plotting
-        plt.ion()
+        # Setup matplotlib for non-interactive plotting to avoid GUI issues
+        import matplotlib
+        matplotlib.use('Agg')
         self.fig, self.axes = plt.subplots(2, 2, figsize=(15, 10))
         self.fig.suptitle('Pathos State Real-Time Visualization')
         
@@ -106,14 +115,32 @@ class PathosStateVisualizer:
         if len(self.state_history) >= 2:
             states_matrix = np.array(list(self.state_history))
             if states_matrix.shape[1] > 2:
-                pca = PCA(n_components=min(10, states_matrix.shape[1]))
-                states_pca = pca.fit_transform(states_matrix)
-                
+                # Ensure n_components doesn't exceed min(n_samples, n_features)
+                max_components = min(states_matrix.shape[0], states_matrix.shape[1])
+                n_components = min(10, max_components)
+                if n_components > 0:
+                    pca = PCA(n_components=n_components)
+                    states_pca = pca.fit_transform(states_matrix)
+                    
+                    self.axes[1, 0].clear()
+                    self.axes[1, 0].set_title('State Vector Components (PCA Projection)')
+                    im = self.axes[1, 0].imshow(states_pca[-20:].T, aspect='auto', cmap='coolwarm', interpolation='nearest')
+                    self.axes[1, 0].set_xlabel('Time Steps (Recent 20)')
+                    self.axes[1, 0].set_ylabel('PCA Components')
+                else:
+                    # Fallback: show raw state components if PCA not possible
+                    self.axes[1, 0].clear()
+                    self.axes[1, 0].set_title('State Vector Components (Raw)')
+                    im = self.axes[1, 0].imshow(states_matrix[-20:, :10].T, aspect='auto', cmap='coolwarm', interpolation='nearest')
+                    self.axes[1, 0].set_xlabel('Time Steps (Recent 20)')
+                    self.axes[1, 0].set_ylabel('State Dimensions (First 10)')
+            else:
+                # For low-dimensional states, show directly
                 self.axes[1, 0].clear()
-                self.axes[1, 0].set_title('State Vector Components (PCA Projection)')
-                im = self.axes[1, 0].imshow(states_pca[-20:].T, aspect='auto', cmap='coolwarm', interpolation='nearest')
+                self.axes[1, 0].set_title('State Vector Components')
+                im = self.axes[1, 0].imshow(states_matrix[-20:].T, aspect='auto', cmap='coolwarm', interpolation='nearest')
                 self.axes[1, 0].set_xlabel('Time Steps (Recent 20)')
-                self.axes[1, 0].set_ylabel('PCA Components')
+                self.axes[1, 0].set_ylabel('State Dimensions')
         
         # Update phase space plot
         if len(state_norms) >= 2:
@@ -128,8 +155,9 @@ class PathosStateVisualizer:
             # Add trajectory line
             self.axes[1, 1].plot(state_norms, list(self.reward_history), 'k-', alpha=0.3, linewidth=1)
         
-        plt.draw()
-        plt.pause(0.01)
+        # Skip interactive drawing to avoid GUI issues
+        # plt.draw()
+        # plt.pause(0.01)
     
     def save_visualization(self, filepath: str):
         """Save current visualization to file"""
@@ -324,8 +352,10 @@ class PreferenceDriftAnalyzer:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Preference drift analysis saved to: {save_path}")
         
-        plt.show()
+        # Close the figure to free memory instead of showing
+        plt.close(fig)
 
 
 class AttractorPatternDetector:
@@ -465,8 +495,10 @@ class AttractorPatternDetector:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Attractor patterns analysis saved to: {save_path}")
         
-        plt.show()
+        # Close the figure to free memory instead of showing
+        plt.close(fig)
 
 
 class MemoryNetworkVisualizer:
@@ -549,8 +581,10 @@ class MemoryNetworkVisualizer:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Memory network visualization saved to: {save_path}")
         
-        plt.show()
+        # Close the figure to free memory instead of showing
+        plt.close(fig)
         
         # Print network statistics
         print(f"Memory Network Statistics:")
@@ -606,6 +640,10 @@ class SystemHealthDashboard:
     
     def generate_dashboard(self, collector: InstrumentationCollector, save_path: Optional[str] = None):
         """Generate comprehensive system health dashboard"""
+        # Set matplotlib to non-interactive backend to avoid GUI issues
+        import matplotlib
+        matplotlib.use('Agg')
+        
         # Collect all metrics
         metrics_summary = collector.get_metrics_summary()
         preference_summary = collector.get_preference_drift_summary()
@@ -660,8 +698,10 @@ class SystemHealthDashboard:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"Dashboard saved to: {save_path}")
         
-        plt.show()
+        # Close the figure to free memory instead of showing
+        plt.close(fig)
     
     def _plot_system_overview(self, ax, metrics_summary):
         """Plot system overview metrics"""

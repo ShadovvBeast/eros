@@ -451,13 +451,53 @@ class UltimateAutonomousAgent:
             def validate_arguments(self, arguments: Dict[str, Any]):
                 return True, None
         
-        # Add all tools to the suite
+        # Wrap tools in MCPTool instances
+        from src.tools.tool_layer import MCPTool
+        
+        # Create tool instances
+        advanced_analyzer = AdvancedDataAnalyzer()
+        creative_solver = CreativeProblemSolver()
+        knowledge_synth = KnowledgeSynthesizer()
+        tool_creator = DynamicToolCreator()
+        system_opt = SystemOptimizer()
+        
+        # Wrap in MCPTool instances
         tools.extend([
-            AdvancedDataAnalyzer(),
-            CreativeProblemSolver(), 
-            KnowledgeSynthesizer(),
-            DynamicToolCreator(),
-            SystemOptimizer()
+            MCPTool(
+                name=advanced_analyzer.name,
+                description=advanced_analyzer.description,
+                category=advanced_analyzer.category,
+                execute_func=advanced_analyzer.execute,
+                validate_func=advanced_analyzer.validate_arguments
+            ),
+            MCPTool(
+                name=creative_solver.name,
+                description=creative_solver.description,
+                category=creative_solver.category,
+                execute_func=creative_solver.execute,
+                validate_func=creative_solver.validate_arguments
+            ),
+            MCPTool(
+                name=knowledge_synth.name,
+                description=knowledge_synth.description,
+                category=knowledge_synth.category,
+                execute_func=knowledge_synth.execute,
+                validate_func=knowledge_synth.validate_arguments
+            ),
+            MCPTool(
+                name=tool_creator.name,
+                description=tool_creator.description,
+                category=tool_creator.category,
+                execute_func=tool_creator.execute,
+                validate_func=tool_creator.validate_arguments
+            ),
+            MCPTool(
+                name=system_opt.name,
+                description=system_opt.description,
+                category=system_opt.category,
+                execute_func=system_opt.execute,
+                validate_func=system_opt.validate_arguments
+            )
         ])
         
         return tools

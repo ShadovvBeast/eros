@@ -27,6 +27,7 @@ MANIFEST
 htmlcov/
 .tox/
 .nox/
+.hypothesis/
 
 # Environment
 .env
@@ -44,16 +45,122 @@ venv.bak/
 *.swo
 *~
 
-# Agent data
+# Agent Runtime Data
 data/*.json
 data/*.db
 data/*.log
+data/memories.json
 logs/
+*.log
+
+# Agent Output Directories
+agent_analysis_output/
+ultimate_agent_output/
+monitoring_data/
+metrics/
+output/
+results/
+
+# Visualization Files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf
+!docs/**/*.png
+!docs/**/*.jpg
+!docs/**/*.jpeg
+!README_assets/**/*
+
+# Memory and State Files
+memory_traces/
+state_snapshots/
+checkpoints/
+*.pkl
+*.pickle
+
+# Configuration Overrides
+config_local.py
+local_config.json
+.env.local
+.env.production
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.temp
+test_*.py
+*_test_*.py
+scratch_*.py
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Monitoring
-monitoring_data/
-metrics/
+# Windows
+*.lnk
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon?
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Model Files (if you add ML models)
+*.h5
+*.hdf5
+*.model
+*.weights
+models/
+checkpoints/
+
+# Large Data Files
+*.csv
+*.tsv
+*.parquet
+!examples/**/*.csv
+!tests/**/*.csv
+
+# Documentation Build
+docs/_build/
+docs/build/
+site/
+
+# Backup Files
+*.bak
+*.backup
+*~
+.#*
+#*#
+
+# Agent-Specific Patterns
+*_output/
+*_analysis/
+session_*.json
+report_*.json
+dashboard_*.png
+pathos_*.png
+memory_*.png
+attractor_*.png
+health_*.png
+realtime_*.png
+
+# Test and Debug Files
+debug_*.py
+test_*.json
+scratch.*
+temp_*
+quick_*
+simple_*
