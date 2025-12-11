@@ -1,6 +1,6 @@
 # Autonomous Logos-Pathos-Memory Agent Examples
 
-This directory contains example configurations, tools, and scenarios that demonstrate the capabilities of the Autonomous Logos-Pathos-Memory Agent system.
+This directory contains example configurations and scenarios that demonstrate the capabilities of the Autonomous Logos-Pathos-Memory Agent system.
 
 ## Directory Structure
 
@@ -10,13 +10,19 @@ examples/
 │   ├── curious_explorer.py     # Exploration-focused agent
 │   ├── cautious_analyst.py     # Analysis-focused agent
 │   └── creative_collaborator.py # Creativity-focused agent
-├── tools/                   # Example tool implementations
-│   └── analysis_tools.py       # Analysis and research tools
 ├── scenarios/               # Complete usage scenarios
 │   ├── research_assistant_scenario.py  # Academic research assistant
-│   └── creative_writing_scenario.py    # Creative writing assistant
+│   ├── creative_writing_scenario.py    # Creative writing assistant
+│   └── comprehensive_agent_demo.py     # Full system demonstration
+├── easy_agent_setup.py      # One-line agent setup with tools
+├── legacy/                  # Legacy tool implementations (moved to src/)
 └── README.md               # This file
 ```
+
+**Note**: The comprehensive tool system has been moved to `src/tools/` as part of the core system architecture. This includes:
+- Built-in tools: `src/tools/builtin/`
+- MCP integration: `src/tools/mcp/`
+- Tool management: `src/tools/manager.py`
 
 ## Agent Configurations
 
@@ -155,28 +161,90 @@ config.pathos = PathosConfig(
 )
 ```
 
-### Tool Integration
+### Comprehensive Tool System
 
-Create custom tools for specific domains:
+The agent now includes a comprehensive tool ecosystem with over 50+ tools across multiple categories:
+
+### Quick Setup (One-Line)
 
 ```python
-def custom_tool(param1: str, param2: int) -> dict:
-    """Custom tool implementation"""
-    # Tool logic here
-    return {
-        "success": True,
-        "result": "Tool output",
-        "metadata": {"param1": param1, "param2": param2}
-    }
+from examples.tools.easy_setup import setup_research_agent, setup_creative_agent
 
-# Register with agent
-agent.tools.register_tool("custom_tool", custom_tool, {
-    "description": "Custom tool for specific domain",
-    "parameters": {
-        "param1": {"type": "string", "description": "First parameter"},
-        "param2": {"type": "integer", "description": "Second parameter"}
-    }
-})
+# Research-focused agent with analysis and web tools
+setup = setup_research_agent()
+agent_tools = setup.get_tool_layer()
+
+# Creative-focused agent with content generation tools  
+setup = setup_creative_agent()
+agent_tools = setup.get_tool_layer()
+```
+
+### Tool Categories Available
+
+- **File Operations**: Read, write, search, directory management
+- **Web Operations**: HTTP requests, web scraping, API interactions
+- **Data Processing**: JSON/CSV processing, statistical analysis
+- **Creative Tools**: Text generation, image processing, content creation
+- **Security Tools**: Hashing, encryption, password generation
+- **Mathematical Tools**: Statistical calculations, expression evaluation
+- **System Monitoring**: System info, process execution, diagnostics
+- **Communication**: Message formatting, email composition
+- **MCP Servers**: External tool servers (filesystem, git, sqlite, etc.)
+
+### MCP Server Integration
+
+The system supports Model Context Protocol (MCP) servers for extended capabilities:
+
+```python
+# Automatic MCP server setup
+from examples.tools.mcp_integration import MCPIntegration
+
+mcp = MCPIntegration()
+mcp.setup_default_servers()  # Includes filesystem, git, sqlite, web search
+
+# Get MCP tools
+mcp_tools = mcp.get_all_tools()
+```
+
+### Custom Tool Development
+
+Create custom tools using the enhanced framework:
+
+```python
+from examples.tools.comprehensive_toolkit import ComprehensiveTool, ToolMetadata
+
+def my_custom_execute(args):
+    return {"result": f"Processed: {args['input']}"}
+
+custom_tool = ComprehensiveTool(
+    ToolMetadata(
+        name="my_custom_tool",
+        description="Custom tool for specific domain",
+        category="custom",
+        parameters={
+            "input": {"type": "string", "description": "Input to process"}
+        },
+        safety_level="safe"
+    ),
+    my_custom_execute
+)
+```
+
+### Tool Manager
+
+Use the comprehensive tool manager for advanced tool management:
+
+```python
+from examples.tools.tool_manager import ToolManager, create_default_tool_config
+
+config = create_default_tool_config()
+manager = ToolManager(config)
+manager.initialize()
+
+# Register all tools with agent
+tool_count = manager.register_with_tool_layer(agent.tools)
+print(f"Registered {tool_count} tools")
+```
 ```
 
 ## Running Examples

@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\mcp\server_manager.py
+# hypothesis_version: 6.148.7
+
+['1.0.0', '2.0', '2024-11-05', 'Unknown error', 'arguments', 'autonomous-agent', 'capabilities', 'category', 'clientInfo', 'connected', 'description', 'disabled', 'error', 'id', 'initialize', 'inputSchema', 'jsonrpc', 'message', 'method', 'name', 'params', 'protocolVersion', 'result', 'running', 'server', 'success', 'tool', 'tool_count', 'tools', 'tools/call', 'tools/list', 'version']

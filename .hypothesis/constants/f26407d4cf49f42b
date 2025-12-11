@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\mcp\tool_wrapper.py
+# hypothesis_version: 6.148.7
+
+['boolean', 'error', 'integer', 'mcp_tools', 'number', 'properties', 'required', 'string', 'success', 'type']

@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\manager.py
+# hypothesis_version: 6.148.7
+
+['builtin', 'builtin_tools', 'categories', 'category', 'count', 'data_processing', 'description', 'file_operations', 'mathematics', 'mcp', 'mcp_tools', 'name', 'permissive', 'security', 'server', 'server_status', 'servers', 'standard', 'strict', 'system_operations', 'tools', 'total_tools', 'type', 'web_operations']

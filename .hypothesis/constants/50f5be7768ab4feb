@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\builtin\web_operations.py
+# hypothesis_version: 6.148.7
+
+['/', '<[^>]+>', 'Content-Type', 'GET', 'URL must be a string', '\\s+', 'application/json', 'build', 'components', 'content', 'content_length', 'data', 'decode', 'decoded', 'download_file', 'downloaded', 'downloaded_file', 'encode', 'encoded', 'extract_images', 'extract_links', 'extract_text', 'file_size', 'fragment', 'headers', 'hostname', 'html_length', 'http_request', 'https', 'images', 'links', 'method', 'netloc', 'operation', 'original', 'output_path', 'params', 'parse', 'path', 'port', 'query', 'scheme', 'status_code', 'success', 'text', 'text_content', 'text_length', 'timeout', 'url', 'url_utilities', 'utf-8', 'web_operations', 'web_scrape']

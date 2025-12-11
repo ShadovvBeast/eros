@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\mcp\config.py
+# hypothesis_version: 6.148.7
+
+['--base-dir', '.', 'ERROR', 'FASTMCP_LOG_LEVEL', 'args', 'command', 'cwd', 'data_processing', 'development', 'disabled', 'env', 'file_operations', 'filesystem', 'git', 'mcp-server-git', 'mcp-server-sqlite', 'mcp-server-time', 'mcpServers', 'mcp_tools', 'r', 'sqlite', 'time', 'utilities', 'uvx', 'w']

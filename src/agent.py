@@ -193,6 +193,7 @@ class AutonomousAgent:
             return {
                 'cycle': self.cycle_count - 1,
                 'intention': intention.description,
+                'semantic_category': semantic_vector.semantic_category,
                 'internal_reward': internal_reward,
                 'external_reward': external_reward,
                 'salience': salience,

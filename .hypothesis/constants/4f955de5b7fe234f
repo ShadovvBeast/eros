@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\builtin\security_tools.py
+# hypothesis_version: 6.148.7
+
+[100, '...', 'Medium', 'Strong', 'Very Strong', 'Weak', 'algorithm', 'base64_processor', 'character_types', 'data', 'decode', 'decoded_data', 'decoded_length', 'encode', 'encoded_data', 'encoded_length', 'hash', 'hash_generator', 'hash_length', 'include_lowercase', 'include_numbers', 'include_symbols', 'include_uppercase', 'length', 'lowercase', 'md5', 'numbers', 'operation', 'original_data', 'original_length', 'password', 'password_generator', 'security', 'sha1', 'sha256', 'sha512', 'strength', 'strength_score', 'success', 'symbols', 'uppercase', 'utf-8']

@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\builtin\math_tools.py
+# hypothesis_version: 6.148.7
+
+[0.5, '0', '__builtins__', 'abs', 'acos', 'area', 'asin', 'atan', 'base', 'ceil', 'circle', 'circumference', 'converted_result', 'cos', 'cosh', 'data', 'data_count', 'decimal_value', 'degrees', 'diagonal', 'dimensions', 'e', 'exp', 'expression', 'floor', 'from_base', 'geometry_calculator', 'height', 'len', 'log', 'log10', 'math_evaluator', 'mathematics', 'max', 'mean', 'median', 'min', 'mode', 'number', 'number_converter', 'operations', 'original_count', 'original_number', 'perimeter', 'pi', 'pow', 'q1', 'q2', 'q3', 'quartiles', 'radians', 'radius', 'range', 'rectangle', 'result', 'result_type', 'round', 'shape', 'side1', 'side2', 'side3', 'sin', 'sinh', 'sphere', 'sqrt', 'standard_deviation', 'statistics', 'std', 'stdev', 'success', 'sum', 'surface_area', 'tan', 'tanh', 'to_base', 'triangle', 'variables', 'variables_used', 'variance', 'volume', 'width']

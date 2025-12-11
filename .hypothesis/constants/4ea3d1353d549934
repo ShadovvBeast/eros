@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\builtin\__init__.py
+# hypothesis_version: 6.148.7
+
+['create_data_tools', 'create_file_tools', 'create_math_tools', 'create_system_tools', 'create_web_tools']

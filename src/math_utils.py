@@ -96,7 +96,9 @@ def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     if norm_a == 0 or norm_b == 0:
         return 0.0
     
-    return np.dot(a, b) / (norm_a * norm_b)
+    similarity = np.dot(a, b) / (norm_a * norm_b)
+    # Clamp to [-1, 1] to handle floating point precision errors
+    return np.clip(similarity, -1.0, 1.0)
 
 
 def euclidean_distance(a: np.ndarray, b: np.ndarray) -> float:

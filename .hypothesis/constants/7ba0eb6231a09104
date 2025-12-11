@@ -1,0 +1,4 @@
+# file: C:\Just-Things\Projects\eros\src\tools\builtin\file_operations.py
+# hypothesis_version: 6.148.7
+
+['.', 'bytes_written', 'case_sensitive', 'content', 'content_match', 'content_search', 'data', 'data_written', 'directories', 'directory', 'encoding', 'file_operations', 'file_path', 'file_size', 'filename', 'filename_match', 'files', 'ignore', 'include_hidden', 'indent', 'json_file_processor', 'list_directory', 'matches', 'mode', 'modified', 'name', 'operation', 'path', 'pattern', 'r', 'read', 'read_file', 'recursive', 'search_files', 'search_path', 'search_pattern', 'size', 'success', 'total_directories', 'total_files', 'total_matches', 'type', 'update', 'updated_data', 'updates', 'utf-8', 'w', 'write', 'write_file']
