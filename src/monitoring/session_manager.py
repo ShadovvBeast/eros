@@ -454,11 +454,18 @@ class SessionManager:
             
             cycle_duration = time.time() - cycle_start
             
-            # Notify cycle completion
+            # Notify cycle completion with detailed information
             cycle_data = {
                 'cycle': cycle,
                 'duration': cycle_duration,
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'intention': cycle_result.get('intention', 'Unknown'),
+                'semantic_category': cycle_result.get('semantic_category', 'Unknown'),
+                'internal_reward': cycle_result.get('internal_reward', 0.0),
+                'external_reward': cycle_result.get('external_reward', 0.0),
+                'salience': cycle_result.get('salience', 0.0),
+                'memory_stored': cycle_result.get('memory_stored', False),
+                'tool_used': cycle_result.get('tool_used', None)
             }
             
             for callback in self.cycle_complete_callbacks:
@@ -566,6 +573,14 @@ class SessionManager:
                 callback(error)
             except Exception as e:
                 print(f"Error callback failed: {e}")
+    
+    def get_current_collector(self) -> Optional[InstrumentationCollector]:
+        """Get the current session's collector"""
+        return self.collector if hasattr(self, 'collector') else None
+    
+    def get_current_agent(self):
+        """Get the current session's agent"""
+        return self.agent if hasattr(self, 'agent') else None
     
     def get_session_status(self) -> Dict[str, Any]:
         """Get current session status"""

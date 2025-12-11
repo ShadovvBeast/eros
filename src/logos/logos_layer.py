@@ -12,9 +12,7 @@ from .interfaces import LogosLayer as LogosLayerInterface
 from ..core.models import SemanticVector, Intention, MemoryTrace, ToolCall
 from ..core.config import LogosConfig
 from ..core.math_utils import cosine_similarity, normalize_vector
-from ..core.logging_config import instrumentation
-
-logger = logging.getLogger(__name__)
+from ..core.logging_config import instrumentation, logger
 
 
 class LogosLayer(LogosLayerInterface):
@@ -65,6 +63,13 @@ class LogosLayer(LogosLayerInterface):
         # Create intention text based on interpretation
         intention_text = self._generate_intention_text(semantic_category, state_magnitude, memory_themes)
         
+        # Log the reasoning process
+        logger.debug("Logos - Semantic interpretation", 
+                    semantic_category=semantic_category,
+                    state_magnitude=f"{state_magnitude:.3f}",
+                    memory_themes=str(list(memory_themes.keys())[:3]),
+                    intention_preview=intention_text[:60])
+        
         return SemanticVector(
             embedding=embedding,
             intention_text=intention_text,
@@ -78,7 +83,9 @@ class LogosLayer(LogosLayerInterface):
         Creates a structured intention with priority and tool candidates based on
         current preferences and historical success patterns.
         """
-        logger.debug(f"Generating intention for category: {semantic_vector.semantic_category}")
+        logger.debug("Logos - Generating intention", 
+                    semantic_category=semantic_vector.semantic_category,
+                    base_intention=semantic_vector.intention_text[:50])
         
         # Compute priority based on preference weights and state energy
         priority = self._compute_intention_priority(semantic_vector, pathos_state)
@@ -90,6 +97,11 @@ class LogosLayer(LogosLayerInterface):
         enhanced_description = self._enhance_intention_description(
             semantic_vector.intention_text, pathos_state, priority
         )
+        
+        logger.debug("Logos - Intention details", 
+                    priority=f"{priority:.3f}",
+                    tool_candidates=str(tool_candidates[:3]),
+                    enhanced_description=enhanced_description[:80])
         
         # Create base intention
         base_intention = Intention(

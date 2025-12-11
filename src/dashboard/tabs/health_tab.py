@@ -121,11 +121,14 @@ class HealthTab(BaseTab):
         ax.set_title("Hardware Overview", fontweight='bold')
         
         if self.hardware_monitor.is_monitoring:
-            metrics = self.hardware_monitor.get_current_metrics()
+            summary = self.hardware_monitor.get_current_summary()
+            metrics = summary.get('current_metrics', {})
             
             # CPU and Memory usage
-            cpu_usage = metrics.get('cpu_percent', 0)
-            memory_usage = metrics.get('memory_percent', 0)
+            cpu_metrics = metrics.get('cpu', {})
+            memory_metrics = metrics.get('memory', {})
+            cpu_usage = cpu_metrics.get('cpu_percent', 0)
+            memory_usage = memory_metrics.get('virtual_percent', 0)
             
             # Create gauge-style display
             categories = ['CPU', 'Memory']
@@ -191,11 +194,13 @@ class HealthTab(BaseTab):
         ax.set_title("Memory Usage", fontweight='bold')
         
         if self.hardware_monitor.is_monitoring:
-            metrics = self.hardware_monitor.get_current_metrics()
+            summary = self.hardware_monitor.get_current_summary()
+            metrics = summary.get('current_metrics', {})
+            memory_metrics = metrics.get('memory', {})
             
             # Memory breakdown
-            total_memory = metrics.get('memory_total', 0) / (1024**3)  # GB
-            used_memory = metrics.get('memory_used', 0) / (1024**3)   # GB
+            total_memory = memory_metrics.get('virtual_total', 0) / (1024**3)  # GB
+            used_memory = memory_metrics.get('virtual_used', 0) / (1024**3)   # GB
             free_memory = total_memory - used_memory
             
             # Pie chart
@@ -223,9 +228,12 @@ class HealthTab(BaseTab):
         alerts = []
         
         if self.hardware_monitor.is_monitoring:
-            metrics = self.hardware_monitor.get_current_metrics()
-            cpu_usage = metrics.get('cpu_percent', 0)
-            memory_usage = metrics.get('memory_percent', 0)
+            summary = self.hardware_monitor.get_current_summary()
+            metrics = summary.get('current_metrics', {})
+            cpu_metrics = metrics.get('cpu', {})
+            memory_metrics = metrics.get('memory', {})
+            cpu_usage = cpu_metrics.get('cpu_percent', 0)
+            memory_usage = memory_metrics.get('virtual_percent', 0)
             
             if cpu_usage > 80:
                 alerts.append(f"High CPU usage: {cpu_usage:.1f}%")

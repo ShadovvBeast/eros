@@ -76,6 +76,15 @@ class AutonomousAgent:
             interest_signal = self.logos.compute_interest_signal(semantic_vector)
             phase_timings['logos'] = time.time() - phase_start
             
+            # Create a "thinking" prompt-like log entry
+            thinking_prompt = self._generate_thinking_prompt(semantic_vector, self.pathos.current_state, recent_memories)
+            logger.debug(f"Cycle {self.cycle_count} - Agent Reasoning", 
+                        thinking_prompt=thinking_prompt,
+                        semantic_category=semantic_vector.semantic_category,
+                        interest_signal=f"{interest_signal:.3f}",
+                        recent_memories_count=len(recent_memories),
+                        intention_preview=intention.description[:80])
+            
             # Phase 2: Ethos validation
             phase_start = time.time()
             intention_valid, intention_error = self.ethos.validate_intention(intention)
@@ -92,16 +101,42 @@ class AutonomousAgent:
             
             tool_call = self.logos.evaluate_tool_usage(intention, self.tools.get_available_tools())
             if tool_call:
+                # Log tool decision reasoning
+                tool_reasoning = self._generate_tool_reasoning(intention, tool_call)
+                logger.debug(f"Cycle {self.cycle_count} - Tool Decision", 
+                            tool_reasoning=tool_reasoning,
+                            selected_tool=tool_call.tool_name,
+                            tool_args=str(tool_call.arguments)[:100])
+                
                 tool_valid, tool_error = self.ethos.validate_tool_call(tool_call)
                 if tool_valid:
+                    logger.debug(f"Cycle {self.cycle_count} - Executing tool", 
+                                tool_name=tool_call.tool_name,
+                                validation_status="APPROVED",
+                                execution_context=f"For {intention.description[:50]}")
                     tool_result = self.tools.execute_tool(tool_call)
                     external_reward = 1.0 if tool_result.success else -0.5
+                    
+                    result_analysis = "SUCCESS - Tool achieved intended outcome" if tool_result.success else "FAILURE - Tool did not achieve intended outcome"
+                    logger.debug(f"Cycle {self.cycle_count} - Tool result", 
+                                tool_name=tool_call.tool_name,
+                                result_analysis=result_analysis,
+                                external_reward=f"{external_reward:+.3f}",
+                                impact="Positive reinforcement" if external_reward > 0 else "Negative feedback")
                     self.instrumentation.record_tool_usage(
                         tool_call.tool_name, tool_result.success, 
                         time.time() - phase_start
                     )
                 else:
-                    logger.warning("Tool call rejected by Ethos", error=tool_error)
+                    logger.warning(f"Cycle {self.cycle_count} - Tool rejected by Ethos", 
+                                  tool_name=tool_call.tool_name,
+                                  rejection_reason=tool_error,
+                                  safety_impact="Prevented potentially unsafe action")
+            else:
+                reasoning = f"No tools needed for '{intention.description[:50]}' - can be accomplished through internal processing"
+                logger.debug(f"Cycle {self.cycle_count} - No tool usage", 
+                            reasoning=reasoning,
+                            decision="INTERNAL_PROCESSING_SUFFICIENT")
             phase_timings['tools'] = time.time() - phase_start
             
             # Phase 4: Pathos state update
@@ -121,6 +156,14 @@ class AutonomousAgent:
             # Update preference learning
             total_reward = internal_reward + external_reward
             self.logos.update_preferences(total_reward, semantic_vector)
+            
+            logger.debug(f"Cycle {self.cycle_count} - Pathos update", 
+                        internal_reward=internal_reward,
+                        external_reward=external_reward,
+                        total_reward=total_reward,
+                        state_change=float(np.linalg.norm(new_state - self.pathos.current_state)),
+                        retrieved_memories=len(retrieved_memories))
+            
             phase_timings['pathos'] = time.time() - phase_start
             
             # Phase 5: Memory storage decision
@@ -148,7 +191,15 @@ class AutonomousAgent:
                     }
                 )
                 self.memory.store_trace(memory_trace)
+                logger.debug(f"Cycle {self.cycle_count} - Memory stored", 
+                            salience=salience,
+                            total_traces=self.memory.get_trace_count(),
+                            total_reward=total_reward)
                 self.instrumentation.record_memory_event('store', salience, self.memory.get_trace_count())
+            else:
+                logger.debug(f"Cycle {self.cycle_count} - Memory not stored", 
+                            salience=salience,
+                            threshold="below_threshold")
             phase_timings['memory'] = time.time() - phase_start
             
             # Update Pathos state
@@ -267,6 +318,61 @@ class AutonomousAgent:
             priority=0.3,
             tool_candidates=[]
         )
+    
+    def _generate_thinking_prompt(self, semantic_vector, pathos_state, recent_memories):
+        """Generate a human-readable thinking prompt showing agent's reasoning process."""
+        state_magnitude = float(np.linalg.norm(pathos_state))
+        
+        # Analyze current state
+        if state_magnitude > 0.8:
+            energy_desc = "high energy and focused attention"
+        elif state_magnitude > 0.4:
+            energy_desc = "balanced and contemplative state"
+        else:
+            energy_desc = "calm and reflective mood"
+        
+        # Memory context
+        memory_context = f"drawing from {len(recent_memories)} recent experiences" if recent_memories else "starting fresh"
+        
+        # Create thinking prompt
+        thinking_prompt = (
+            f"I am currently in a {energy_desc}. "
+            f"Based on my {semantic_vector.semantic_category} mindset and {memory_context}, "
+            f"I am considering: '{semantic_vector.intention_text}'. "
+            f"This aligns with my current preference for {semantic_vector.semantic_category} activities."
+        )
+        
+        return thinking_prompt
+    
+    def _generate_tool_reasoning(self, intention, tool_call):
+        """Generate reasoning for why a specific tool was selected."""
+        reasoning = (
+            f"To accomplish '{intention.description[:60]}', I have determined that "
+            f"the '{tool_call.tool_name}' tool is most appropriate. "
+            f"This tool will help me {self._get_tool_purpose(tool_call.tool_name)} "
+            f"which directly supports my current {intention.semantic_vector.semantic_category} objective."
+        )
+        return reasoning
+    
+    def _get_tool_purpose(self, tool_name):
+        """Get a human-readable purpose for a tool."""
+        tool_purposes = {
+            'observe_environment': 'gather information about my current context',
+            'analyze_data': 'process and understand available information',
+            'create_content': 'generate new ideas or solutions',
+            'communicate': 'share insights or interact with others',
+            'file_operations': 'manage and organize information',
+            'web_search': 'research and gather external knowledge',
+            'memory_query': 'recall relevant past experiences'
+        }
+        
+        # Extract base tool name (remove prefixes/suffixes)
+        base_name = tool_name.lower()
+        for key in tool_purposes:
+            if key in base_name:
+                return tool_purposes[key]
+        
+        return f"utilize the capabilities of {tool_name}"
     
     def _handle_tool_result(self, result: ToolResult) -> None:
         """

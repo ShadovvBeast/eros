@@ -83,13 +83,27 @@ class LogAuditSystem:
         self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Configure text tags for different log levels
-        self.log_text.tag_configure("ERROR", foreground="red", font=('Consolas', 9, 'bold'))
-        self.log_text.tag_configure("WARNING", foreground="orange")
-        self.log_text.tag_configure("INFO", foreground="blue")
-        self.log_text.tag_configure("DEBUG", foreground="gray")
-        self.log_text.tag_configure("TIMESTAMP", foreground="purple", font=('Consolas', 8))
-        self.log_text.tag_configure("COMPONENT", foreground="green", font=('Consolas', 9, 'bold'))
+        # Configure text tags for different log levels with enhanced styling
+        self.log_text.tag_configure("ERROR", foreground="#FF4444", font=('Consolas', 9, 'bold'), background="#FFE6E6")
+        self.log_text.tag_configure("WARNING", foreground="#FF8800", font=('Consolas', 9, 'bold'), background="#FFF4E6")
+        self.log_text.tag_configure("INFO", foreground="#0066CC", font=('Consolas', 9))
+        self.log_text.tag_configure("DEBUG", foreground="#666666", font=('Consolas', 8))
+        self.log_text.tag_configure("TIMESTAMP", foreground="#8B4B9B", font=('Consolas', 8, 'italic'))
+        self.log_text.tag_configure("COMPONENT", foreground="#228B22", font=('Consolas', 9, 'bold'))
+        
+        # Enhanced component-specific styling
+        self.log_text.tag_configure("LOGOS", foreground="#4169E1", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("PATHOS", foreground="#DC143C", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("MEMORY", foreground="#FF6347", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("TOOLS", foreground="#32CD32", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("AGENT", foreground="#1E90FF", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("SESSION", foreground="#9932CC", font=('Consolas', 9, 'bold'))
+        self.log_text.tag_configure("SYSTEM", foreground="#696969", font=('Consolas', 9, 'bold'))
+        
+        # Special formatting for cycle summaries
+        self.log_text.tag_configure("CYCLE_HEADER", foreground="#000080", font=('Consolas', 10, 'bold'), background="#F0F8FF")
+        self.log_text.tag_configure("DETAILS", foreground="#2F4F4F", font=('Consolas', 8))
+        self.log_text.tag_configure("SEPARATOR", foreground="#CCCCCC")
         
         # Export controls
         export_frame = ttk.Frame(frame)
@@ -154,6 +168,15 @@ class LogAuditSystem:
         component_combo.pack(side=tk.LEFT, padx=(5, 0))
         component_combo.bind('<<ComboboxSelected>>', lambda e: self._update_log_filter())
         
+        # Detailed logging toggle
+        detail_frame = ttk.Frame(parent)
+        detail_frame.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.detailed_logging_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(detail_frame, text="Detailed Cycle Logging", 
+                       variable=self.detailed_logging_var,
+                       command=self._toggle_detailed_logging).pack(side=tk.LEFT)
+        
         # Search
         search_frame = ttk.Frame(parent)
         search_frame.pack(side=tk.LEFT, padx=(0, 10))
@@ -209,7 +232,71 @@ class LogAuditSystem:
         self.session_manager.add_cycle_complete_callback(self._on_cycle_event)
         self.session_manager.add_error_callback(self._on_error_event)
         
+        # Setup custom log handler to capture agent debug messages
+        self._setup_agent_log_handler()
+        
         self._add_log_entry("SYSTEM", "INFO", "Log & Audit system started")
+    
+    def _setup_agent_log_handler(self):
+        """Setup custom handler to capture agent log messages."""
+        import logging
+        
+        class DashboardLogHandler(logging.Handler):
+            def __init__(self, dashboard_log_system):
+                super().__init__()
+                self.dashboard = dashboard_log_system
+            
+            def emit(self, record):
+                try:
+                    # Parse the log record
+                    message = record.getMessage()
+                    level = record.levelname
+                    
+                    # Determine component from logger name or message content
+                    component = "AGENT"
+                    if "logos" in message.lower():
+                        component = "LOGOS"
+                    elif "pathos" in message.lower():
+                        component = "PATHOS"
+                    elif "memory" in message.lower():
+                        component = "MEMORY"
+                    elif "tool" in message.lower():
+                        component = "TOOLS"
+                    
+                    # Only show debug messages if detailed logging is enabled
+                    if level == "DEBUG" and not self.dashboard.detailed_logging_var.get():
+                        return
+                    
+                    # Extract details from structured logging
+                    details = ""
+                    if " | " in message:
+                        # Split message and details (our logger format: "message | {json_data}")
+                        parts = message.split(" | ", 1)
+                        if len(parts) == 2:
+                            message = parts[0]
+                            try:
+                                import json
+                                kwargs_data = json.loads(parts[1])
+                                if isinstance(kwargs_data, dict):
+                                    details_parts = []
+                                    for key, value in kwargs_data.items():
+                                        if isinstance(value, float):
+                                            details_parts.append(f"{key}: {value:.3f}")
+                                        else:
+                                            details_parts.append(f"{key}: {str(value)[:50]}")
+                                    details = " | ".join(details_parts)
+                            except (json.JSONDecodeError, ValueError):
+                                # If JSON parsing fails, use the raw details
+                                details = parts[1]
+                    
+                    self.dashboard._add_log_entry(component, level, message, details)
+                except Exception:
+                    pass  # Avoid recursive logging errors
+        
+        # Add handler to agent logger
+        agent_logger = logging.getLogger('autonomous_agent')
+        self.agent_log_handler = DashboardLogHandler(self)
+        agent_logger.addHandler(self.agent_log_handler)
     
     def _log_update_loop(self):
         """Main loop for updating log display."""
@@ -249,7 +336,7 @@ class LogAuditSystem:
             self.log_text.after(0, lambda: self._display_log_entry(log_entry))
     
     def _display_log_entry(self, entry):
-        """Display a log entry in the text widget."""
+        """Display a log entry in the text widget with enhanced formatting."""
         if not hasattr(self, 'log_text') or not self.log_text:
             return
         
@@ -257,19 +344,45 @@ class LogAuditSystem:
         if not self._passes_filters(entry):
             return
         
+        # Skip if this is a cycle completion (handled by _add_enhanced_cycle_entry)
+        if "Cycle" in entry['message'] and "completed" in entry['message']:
+            return
+        
         # Format timestamp
         timestamp_str = entry['timestamp'].strftime("%H:%M:%S.%f")[:-3]
         
-        # Insert entry
+        # Determine component tag for enhanced styling
+        component_tag = entry['component'] if entry['component'] in ['LOGOS', 'PATHOS', 'MEMORY', 'TOOLS', 'AGENT', 'SESSION', 'SYSTEM'] else "COMPONENT"
+        
+        # Insert entry with enhanced formatting
         self.log_text.insert(tk.END, f"[{timestamp_str}] ", "TIMESTAMP")
-        self.log_text.insert(tk.END, f"[{entry['component']}] ", "COMPONENT")
+        self.log_text.insert(tk.END, f"[{entry['component']}] ", component_tag)
         self.log_text.insert(tk.END, f"[{entry['level']}] ", entry['level'])
-        self.log_text.insert(tk.END, f"{entry['message']}")
         
-        if entry['details']:
-            self.log_text.insert(tk.END, f" - {entry['details']}")
-        
-        self.log_text.insert(tk.END, "\n")
+        # Enhanced message formatting for debug entries
+        if entry['level'] == 'DEBUG' and entry['details']:
+            # Format debug messages with structured details
+            self.log_text.insert(tk.END, f"{entry['message']}\n", entry['level'])
+            
+            # Parse and format details nicely
+            details = entry['details']
+            if '|' in details:
+                detail_parts = [part.strip() for part in details.split('|')]
+                for i, part in enumerate(detail_parts):
+                    if ':' in part:
+                        key, value = part.split(':', 1)
+                        self.log_text.insert(tk.END, f"    • {key.strip()}: ", "DETAILS")
+                        self.log_text.insert(tk.END, f"{value.strip()}\n", "DEBUG")
+                    else:
+                        self.log_text.insert(tk.END, f"    • {part}\n", "DEBUG")
+            else:
+                self.log_text.insert(tk.END, f"    {details}\n", "DETAILS")
+        else:
+            # Standard formatting for non-debug messages
+            self.log_text.insert(tk.END, f"{entry['message']}")
+            if entry['details']:
+                self.log_text.insert(tk.END, f" - {entry['details']}")
+            self.log_text.insert(tk.END, "\n")
         
         # Auto-scroll if enabled
         if self.auto_scroll_var.get():
@@ -318,9 +431,98 @@ class LogAuditSystem:
         self._add_log_entry("SESSION", "INFO", f"State changed to: {state.value}")
     
     def _on_cycle_event(self, cycle, data):
-        """Handle agent cycle completion events."""
+        """Handle agent cycle completion events with enhanced visual formatting."""
         duration = data.get('duration', 0)
-        self._add_log_entry("AGENT", "INFO", f"Cycle {cycle} completed", f"Duration: {duration:.3f}s")
+        intention = data.get('intention', 'Unknown')
+        semantic_category = data.get('semantic_category', 'Unknown')
+        internal_reward = data.get('internal_reward', 0.0)
+        external_reward = data.get('external_reward', 0.0)
+        salience = data.get('salience', 0.0)
+        memory_stored = data.get('memory_stored', False)
+        tool_used = data.get('tool_used', None)
+        
+        # Create visually appealing cycle summary
+        self._add_enhanced_cycle_entry(cycle, {
+            'duration': duration,
+            'intention': intention,
+            'semantic_category': semantic_category,
+            'internal_reward': internal_reward,
+            'external_reward': external_reward,
+            'salience': salience,
+            'memory_stored': memory_stored,
+            'tool_used': tool_used
+        })
+    
+    def _add_enhanced_cycle_entry(self, cycle, data):
+        """Add a beautifully formatted cycle entry to the log."""
+        if not hasattr(self, 'log_text') or not self.log_text:
+            return
+        
+        timestamp_str = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        
+        # Cycle header with visual separator
+        self.log_text.insert(tk.END, "\n" + "─" * 80 + "\n", "SEPARATOR")
+        self.log_text.insert(tk.END, f"[{timestamp_str}] ", "TIMESTAMP")
+        self.log_text.insert(tk.END, f"🔄 CYCLE {cycle} COMPLETED ", "CYCLE_HEADER")
+        
+        # Performance indicator
+        duration = data['duration']
+        if duration < 0.01:
+            perf_icon = "⚡"
+            perf_color = "INFO"
+        elif duration < 0.1:
+            perf_icon = "🟢"
+            perf_color = "INFO"
+        elif duration < 1.0:
+            perf_icon = "🟡"
+            perf_color = "WARNING"
+        else:
+            perf_icon = "🔴"
+            perf_color = "ERROR"
+        
+        self.log_text.insert(tk.END, f"{perf_icon} {duration:.3f}s\n", perf_color)
+        
+        # Intention and category
+        intention = data['intention']
+        category = data['semantic_category']
+        self.log_text.insert(tk.END, "  💭 Intention: ", "DETAILS")
+        self.log_text.insert(tk.END, f"{intention[:70]}{'...' if len(intention) > 70 else ''}\n", "INFO")
+        self.log_text.insert(tk.END, f"  🏷️  Category: ", "DETAILS")
+        self.log_text.insert(tk.END, f"{category.upper()}\n", "COMPONENT")
+        
+        # Rewards section
+        internal_reward = data['internal_reward']
+        external_reward = data['external_reward']
+        total_reward = internal_reward + external_reward
+        
+        reward_icon = "🎯" if total_reward > 0.5 else "📈" if total_reward > 0 else "📉" if total_reward < 0 else "➖"
+        reward_color = "INFO" if total_reward > 0 else "WARNING" if total_reward < 0 else "DEBUG"
+        
+        self.log_text.insert(tk.END, f"  {reward_icon} Rewards: ", "DETAILS")
+        self.log_text.insert(tk.END, f"Internal: {internal_reward:+.3f} | External: {external_reward:+.3f} | Total: {total_reward:+.3f}\n", reward_color)
+        
+        # Memory and salience
+        salience = data['salience']
+        memory_stored = data['memory_stored']
+        memory_icon = "💾" if memory_stored else "🗃️"
+        memory_color = "INFO" if memory_stored else "DEBUG"
+        
+        self.log_text.insert(tk.END, f"  {memory_icon} Memory: ", "DETAILS")
+        self.log_text.insert(tk.END, f"{'STORED' if memory_stored else 'NOT STORED'} ", memory_color)
+        self.log_text.insert(tk.END, f"(Salience: {salience:.3f})\n", "DETAILS")
+        
+        # Tool usage
+        tool_used = data['tool_used']
+        if tool_used:
+            self.log_text.insert(tk.END, "  🔧 Tool Used: ", "DETAILS")
+            self.log_text.insert(tk.END, f"{tool_used}\n", "TOOLS")
+        else:
+            self.log_text.insert(tk.END, "  🔧 Tool Used: ", "DETAILS")
+            self.log_text.insert(tk.END, "None\n", "DEBUG")
+        
+        # Auto-scroll if enabled
+        if self.auto_scroll_var.get():
+            self.log_text.see(tk.END)
     
     def _on_error_event(self, error):
         """Handle error events."""
@@ -446,6 +648,19 @@ class LogAuditSystem:
         """Refresh the log display."""
         self._update_log_filter()
         self._add_log_entry("SYSTEM", "INFO", "Log display refreshed")
+    
+    def _toggle_detailed_logging(self):
+        """Toggle detailed cycle logging."""
+        if self.detailed_logging_var.get():
+            self._add_log_entry("SYSTEM", "INFO", "Detailed cycle logging enabled")
+            # Enable debug level logging for agent components
+            import logging
+            logging.getLogger('autonomous_agent').setLevel(logging.DEBUG)
+        else:
+            self._add_log_entry("SYSTEM", "INFO", "Detailed cycle logging disabled")
+            # Reset to INFO level
+            import logging
+            logging.getLogger('autonomous_agent').setLevel(logging.INFO)
     
     def update_display(self):
         """Update display (called by dashboard monitoring loop)."""

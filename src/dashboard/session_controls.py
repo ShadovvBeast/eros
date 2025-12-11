@@ -8,10 +8,40 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from typing import Callable, Optional
 
+# Import with fallback for different execution contexts
 try:
     from ..monitoring.session_manager import SessionManager, SessionConfig, SessionState
 except ImportError:
-    from monitoring.session_manager import SessionManager, SessionConfig, SessionState
+    try:
+        from monitoring.session_manager import SessionManager, SessionConfig, SessionState
+    except ImportError:
+        # Mock implementations for testing
+        from enum import Enum
+        
+        class SessionState(Enum):
+            IDLE = "idle"
+            RUNNING = "running"
+            PAUSED = "paused"
+            COMPLETED = "completed"
+            ERROR = "error"
+        
+        class SessionConfig:
+            def __init__(self):
+                self.duration_minutes = 5.0
+                self.agent_identity = "Test Agent"
+                self.pathos_dimension = 128
+                self.exploration_factor = 0.1
+                self.output_directory = "test_output"
+        
+        class SessionManager:
+            def __init__(self):
+                self.state = SessionState.IDLE
+            def configure_session(self, config): pass
+            def start_session(self): pass
+            def stop_session(self): pass
+            def pause_session(self): pass
+            def resume_session(self): pass
+            def emergency_stop(self): pass
 
 
 class SessionControlPanel:
@@ -19,13 +49,11 @@ class SessionControlPanel:
     
     def __init__(self, parent, session_manager: SessionManager, 
                  session_config: SessionConfig,
-                 toggle_monitoring_callback: Callable,
                  export_data_callback: Callable,
                  open_config_callback: Callable):
         """Initialize session control panel."""
         self.session_manager = session_manager
         self.session_config = session_config
-        self.toggle_monitoring_callback = toggle_monitoring_callback
         self.export_data_callback = export_data_callback
         self.open_config_callback = open_config_callback
         
@@ -79,25 +107,18 @@ class SessionControlPanel:
         right_frame = ttk.Frame(control_frame)
         right_frame.pack(side=tk.RIGHT)
         
-        # Monitoring controls
-        monitor_frame = ttk.Frame(right_frame)
-        monitor_frame.pack(fill=tk.X)
-        
-        self.monitor_button = ttk.Button(
-            monitor_frame,
-            text="📊 Start Monitoring",
-            command=self.toggle_monitoring_callback
-        )
-        self.monitor_button.pack(side=tk.LEFT, padx=(0, 5))
+        # Dashboard controls (no monitoring button - automatic with session)
+        controls_frame = ttk.Frame(right_frame)
+        controls_frame.pack(fill=tk.X)
         
         ttk.Button(
-            monitor_frame,
+            controls_frame,
             text="🔄 Refresh",
             command=self._refresh_all
         ).pack(side=tk.LEFT, padx=(0, 5))
         
         ttk.Button(
-            monitor_frame,
+            controls_frame,
             text="💾 Export Data",
             command=self.export_data_callback
         ).pack(side=tk.LEFT)

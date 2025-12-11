@@ -466,6 +466,11 @@ class HardwareMonitor:
         except Exception as e:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
     
+    def get_current_metrics(self) -> Dict[str, Any]:
+        """Get current metrics (compatibility alias for get_current_summary)"""
+        summary = self.get_current_summary()
+        return summary.get('current_metrics', {})
+    
     def get_history_data(self, metric_type: str, duration_minutes: int = 5) -> List[Dict[str, Any]]:
         """Get historical data for a specific metric type"""
         history_map = {

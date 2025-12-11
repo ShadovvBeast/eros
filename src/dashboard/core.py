@@ -14,31 +14,76 @@ from collections import deque
 import json
 import os
 
+# Import with fallback for different execution contexts
 try:
+    # Try relative imports first (when imported as module)
     from ..core.logging_config import InstrumentationCollector
     from ..core.models import MemoryTrace
-    from ..visualization import (
-        PreferenceDriftAnalyzer, 
-        AttractorPatternDetector, 
-        MemoryNetworkVisualizer,
-        SystemHealthDashboard
-    )
     from ..monitoring.hardware_monitor import get_hardware_monitor
     from ..monitoring.session_manager import get_session_manager, SessionConfig, SessionState
     from ..monitoring.thread_manager import get_thread_manager
 except ImportError:
-    # Fallback for direct execution
-    from core.logging_config import InstrumentationCollector
-    from core.models import MemoryTrace
-    from visualization import (
-        PreferenceDriftAnalyzer, 
-        AttractorPatternDetector, 
-        MemoryNetworkVisualizer,
-        SystemHealthDashboard
-    )
-    from hardware_monitor import get_hardware_monitor
-    from session_manager import get_session_manager, SessionConfig, SessionState
-    from thread_manager import get_thread_manager
+    try:
+        # Try absolute imports (when run from main.py)
+        from core.logging_config import InstrumentationCollector
+        from core.models import MemoryTrace
+        from monitoring.hardware_monitor import get_hardware_monitor
+        from monitoring.session_manager import get_session_manager, SessionConfig, SessionState
+        from monitoring.thread_manager import get_thread_manager
+    except ImportError:
+        # Create mock implementations for testing
+        print("⚠️  Using mock implementations for dashboard components")
+        
+        class InstrumentationCollector:
+            def __init__(self):
+                self.metrics = {}
+            def get_metrics_summary(self):
+                return {}
+        
+        class MemoryTrace:
+            def __init__(self):
+                pass
+        
+        def get_hardware_monitor():
+            class MockHardwareMonitor:
+                def __init__(self):
+                    self.is_monitoring = False
+                def get_current_summary(self):
+                    return {'current_metrics': {}, 'system_info': {}}
+            return MockHardwareMonitor()
+        
+        def get_session_manager():
+            class MockSessionManager:
+                def __init__(self):
+                    from enum import Enum
+                    class SessionState(Enum):
+                        IDLE = "idle"
+                        RUNNING = "running"
+                    self.state = SessionState.IDLE
+                def add_state_change_callback(self, callback): pass
+                def add_cycle_complete_callback(self, callback): pass
+                def add_error_callback(self, callback): pass
+            return MockSessionManager()
+        
+        def get_thread_manager():
+            class MockThreadManager:
+                def get_all_threads(self): return []
+                def get_active_threads(self): return []
+            return MockThreadManager()
+        
+        class SessionConfig:
+            def __init__(self):
+                self.duration_minutes = 5.0
+                self.agent_identity = "Test Agent"
+                self.pathos_dimension = 128
+                self.exploration_rate = 0.1
+                self.output_directory = "test_output"
+        
+        class SessionState:
+            IDLE = "idle"
+            RUNNING = "running"
+            COMPLETED = "completed"
+            ERROR = "error"
 
 from .session_controls import SessionControlPanel
 from .log_system import LogAuditSystem
@@ -96,6 +141,9 @@ class InteractiveDashboard:
         # Setup GUI
         self._setup_gui()
         self._setup_session_callbacks()
+        
+        # Start monitoring automatically (for hardware data, etc.)
+        self._start_monitoring()
     
     def _setup_gui(self):
         """Setup the main GUI interface."""
@@ -120,7 +168,6 @@ class InteractiveDashboard:
             main_frame, 
             self.session_manager,
             self.session_config,
-            self._toggle_monitoring,
             self._export_data,
             self._open_agent_config
         )
@@ -216,12 +263,7 @@ class InteractiveDashboard:
         )
         hardware_indicator.pack(side=tk.RIGHT)
     
-    def _toggle_monitoring(self):
-        """Toggle monitoring on/off."""
-        if self.is_monitoring:
-            self._stop_monitoring()
-        else:
-            self._start_monitoring()
+
     
     def _start_monitoring(self):
         """Start monitoring."""
@@ -257,6 +299,10 @@ class InteractiveDashboard:
         """Main monitoring loop."""
         while self.is_monitoring:
             try:
+                # Refresh data connections if session is running
+                if self.session_manager.state == SessionState.RUNNING:
+                    self._refresh_data_connections()
+                
                 # Update all tabs
                 for tab in self.tabs.values():
                     if hasattr(tab, 'update_display'):
@@ -266,6 +312,45 @@ class InteractiveDashboard:
             except Exception as e:
                 print(f"Monitoring error: {e}")
                 time.sleep(1)
+    
+    def _refresh_data_connections(self):
+        """Refresh data connections to session manager."""
+        # Update collector if it changed
+        session_collector = self.session_manager.get_current_collector()
+        if session_collector and session_collector != self.collector:
+            self.collector = session_collector
+            self._update_tabs_collector()
+            print("🔄 Dashboard collector updated")
+        
+        # Debug: Print collector status every 10 updates
+        if hasattr(self, '_debug_counter'):
+            self._debug_counter += 1
+        else:
+            self._debug_counter = 1
+        
+        if self._debug_counter % 10 == 0:
+            self._print_collector_debug()
+        
+        # Update memory traces if they changed
+        session_agent = self.session_manager.get_current_agent()
+        if session_agent and hasattr(session_agent, 'memory'):
+            if hasattr(session_agent.memory, 'traces'):
+                if session_agent.memory.traces != self.memory_traces:
+                    self.memory_traces = session_agent.memory.traces
+                    if 'memory' in self.tabs:
+                        self.tabs['memory'].memory_traces = self.memory_traces
+    
+    def _print_collector_debug(self):
+        """Print debug information about collector status."""
+        if hasattr(self.collector, 'metrics'):
+            metrics = self.collector.metrics
+            total_data = sum(len(metrics[key]) if isinstance(metrics[key], list) else 0 for key in metrics)
+            print(f"🔍 Collector debug: {total_data} total data points")
+            for key, value in metrics.items():
+                if isinstance(value, list):
+                    print(f"  - {key}: {len(value)} items")
+        else:
+            print("🔍 Collector debug: No metrics attribute")
     
     def _export_data(self):
         """Export current data and visualizations."""
@@ -290,8 +375,35 @@ class InteractiveDashboard:
             self.session_controls.open_config_dialog()
     
     def _on_session_state_change(self, state):
-        """Handle session state changes."""
+        """Handle session state changes and automatically manage monitoring."""
         self.session_indicator.config(text=f"🔄 Session: {state.value}")
+        
+        # Update collector reference when session starts
+        if state == SessionState.RUNNING:
+            # Use the session manager's collector for real data
+            session_collector = self.session_manager.get_current_collector()
+            if session_collector:
+                self.collector = session_collector
+                # Update all tabs with the new collector
+                self._update_tabs_collector()
+                print("✅ Dashboard connected to session collector")
+            
+            # Update memory traces from agent if available
+            session_agent = self.session_manager.get_current_agent()
+            if session_agent and hasattr(session_agent, 'memory'):
+                if hasattr(session_agent.memory, 'traces'):
+                    self.memory_traces = session_agent.memory.traces
+                    # Update memory tab
+                    if 'memory' in self.tabs:
+                        self.tabs['memory'].memory_traces = self.memory_traces
+                        print("✅ Dashboard connected to agent memory traces")
+            
+            if not self.is_monitoring:
+                self._start_monitoring()
+        
+        # Automatically stop monitoring when session ends
+        elif state in [SessionState.COMPLETED, SessionState.ERROR, SessionState.IDLE] and self.is_monitoring:
+            self._stop_monitoring()
     
     def _on_cycle_complete(self, cycle_num, data):
         """Handle agent cycle completion."""
@@ -300,6 +412,20 @@ class InteractiveDashboard:
     def _on_session_error(self, error):
         """Handle session errors."""
         messagebox.showerror("Session Error", str(error))
+    
+    def _update_tabs_collector(self):
+        """Update all tabs with the current collector."""
+        # Update tabs that use the collector
+        if 'health' in self.tabs:
+            self.tabs['health'].collector = self.collector
+        if 'pathos' in self.tabs:
+            self.tabs['pathos'].collector = self.collector
+        if 'preference' in self.tabs:
+            self.tabs['preference'].collector = self.collector
+        if 'attractor' in self.tabs:
+            self.tabs['attractor'].collector = self.collector
+        if 'performance' in self.tabs:
+            self.tabs['performance'].collector = self.collector
     
     def _on_closing(self):
         """Handle window closing."""
