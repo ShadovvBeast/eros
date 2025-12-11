@@ -18,7 +18,7 @@ except ImportError:
     HAS_RESOURCE = False
 
 from ..interfaces import Tool
-from ...models import ToolResult
+from ...core.models import ToolResult
 
 
 class SystemTool(Tool):

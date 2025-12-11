@@ -1,41 +1,41 @@
-# Autonomous Logos-Pathos-Memory Agent
+# E.R.O.S — Enhanced Reasoning & Operational System
 
 An autonomous AI agent that operates continuously without user interaction, featuring three interconnected layers: Logos (reasoning), Pathos (affective dynamics), and Memory (associative storage), all operating within an Ethos framework.
 
 ## Project Structure
 
 ```
-src/
-├── __init__.py                 # Main package
-├── agent.py                    # Main agent coordination class
-├── models.py                   # Core data structures
-├── config.py                   # Configuration classes
-├── logging_config.py           # Logging and instrumentation
-├── logos/                      # Cognitive reasoning layer
-│   ├── __init__.py
-│   └── interfaces.py           # Logos layer interfaces
-├── pathos/                     # Affective dynamics layer
-│   ├── __init__.py
-│   └── interfaces.py           # Pathos layer interfaces
-├── memory/                     # Associative memory system
-│   ├── __init__.py
-│   └── interfaces.py           # Memory system interfaces
-├── ethos/                      # Identity and constraints
-│   ├── __init__.py
-│   └── interfaces.py           # Ethos framework interfaces
-└── tools/                      # Environment interaction
-    ├── __init__.py
-    └── interfaces.py           # Tool layer interfaces
-
-tests/
-├── __init__.py
-├── conftest.py                 # Test configuration and fixtures
-└── test_models.py              # Core model tests
-
-.env                            # Environment configuration
-requirements.txt                # Python dependencies
-pytest.ini                     # Test configuration
-setup.py                       # Package setup
+├── main.py                     # Main entry point for all system modes
+├── src/                        # Core source code
+│   ├── agent.py                # Main agent coordination class
+│   ├── models.py               # Core data structures
+│   ├── config.py               # Configuration classes
+│   ├── logging_config.py       # Logging and instrumentation
+│   ├── logos/                  # Cognitive reasoning layer
+│   ├── pathos/                 # Affective dynamics layer
+│   ├── memory/                 # Associative memory system
+│   ├── ethos/                  # Identity and constraints
+│   └── tools/                  # Environment interaction
+├── demos/                      # Demo applications and examples
+│   ├── autonomous_agent_gui.py # Interactive GUI control center
+│   ├── ultimate_autonomous_agent.py # Extended autonomous agent
+│   ├── simple_agent_test.py    # Basic agent test
+│   └── interactive_agent_monitor.py # Legacy monitor
+├── tests/                      # Test suite
+│   ├── conftest.py             # Test configuration and fixtures
+│   ├── test_*.py               # Comprehensive test coverage
+│   └── integration tests       # System integration tests
+├── utils/                      # Development and utility tools
+│   ├── system_readiness_check.py # System verification
+│   └── quick_test_run.py       # Quick testing utility
+├── docs/                       # Documentation and guides
+│   ├── *.md                    # Feature documentation
+│   └── development guides      # Implementation details
+├── data/                       # Generated data and session outputs
+│   ├── session_output_*/       # Agent session data
+│   └── analysis outputs        # Generated analysis files
+├── examples/                   # Usage examples and configurations
+└── .kiro/                      # Kiro IDE configuration
 ```
 
 ## Architecture Overview
@@ -81,17 +81,26 @@ The project includes a comprehensive interactive dashboard for real-time monitor
 
 #### Primary Interface (Recommended)
 ```bash
-# Launch the Autonomous Agent Control Center
-python autonomous_agent_gui.py
+# Launch the E.R.O.S Control Center
+python main.py gui
 ```
 
 #### Alternative Options
 ```bash
+# Run E.R.O.S with extended capabilities
+python main.py ultimate
+
+# Run a simple E.R.O.S test
+python main.py simple
+
+# Check E.R.O.S system readiness
+python main.py readiness
+
 # Test dashboard with mock data
-python test_interactive_dashboard.py
+python main.py dashboard
 
 # Legacy integrated system
-python interactive_agent_monitor.py
+python main.py monitor
 ```
 
 ### Dashboard Controls
@@ -194,11 +203,11 @@ All visualizations can be exported as:
 
 ## Agent Operation Modes
 
-The system provides multiple ways to run the autonomous agent:
+The system provides multiple ways to run the autonomous agent through the unified `main.py` entry point:
 
 ### 1. Interactive GUI Control Center (Recommended)
 ```bash
-python autonomous_agent_gui.py
+python main.py gui
 ```
 - **Professional interface** with session management
 - **Real-time monitoring** of all agent layers
@@ -208,20 +217,26 @@ python autonomous_agent_gui.py
 
 ### 2. Ultimate Autonomous Agent
 ```bash
-python ultimate_autonomous_agent.py
+python main.py ultimate --duration 600
 ```
-- **Extended runtime** capabilities (2-20 minutes)
+- **Extended runtime** capabilities (configurable duration)
 - **Advanced tool creation** and optimization
 - **Comprehensive monitoring** with automatic analysis
 - **Professional visualizations** and reports
 
-### 3. Legacy Systems
+### 3. Development and Testing
 ```bash
 # Simple test runs
-python simple_agent_test.py
+python main.py simple
 
-# Comprehensive agent with visualization
-python comprehensive_agent_with_visualization.py
+# System readiness check
+python main.py readiness
+
+# Dashboard testing
+python main.py dashboard
+
+# Legacy monitor
+python main.py monitor
 ```
 
 Eros - Pathos Engine

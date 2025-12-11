@@ -13,7 +13,7 @@ from .interfaces import Tool
 from .builtin import get_all_builtin_tools
 from .mcp import MCPServerManager, MCPToolWrapper, MCPServerConfig, create_default_mcp_config
 from .tool_layer import ToolLayer
-from ..config import ToolConfig
+from ..core.config import ToolConfig
 from ..ethos.interfaces import EthosFramework
 
 logger = logging.getLogger(__name__)

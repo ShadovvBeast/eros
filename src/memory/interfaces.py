@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional
 import numpy as np
 
-from ..models import MemoryTrace, SemanticVector
-from ..config import MemoryConfig
+from ..core.models import MemoryTrace, SemanticVector
+from ..core.config import MemoryConfig
 
 
 class MemorySystem(ABC):

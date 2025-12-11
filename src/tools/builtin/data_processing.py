@@ -11,7 +11,7 @@ from datetime import datetime
 from io import StringIO
 
 from ..interfaces import Tool
-from ...models import ToolResult
+from ...core.models import ToolResult
 
 
 class DataProcessingTool(Tool):

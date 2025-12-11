@@ -24,10 +24,14 @@ MANIFEST
 # Testing
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
 .tox/
 .nox/
 .hypothesis/
+test-results/
+junit.xml
 
 # Environment
 .env

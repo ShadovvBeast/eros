@@ -4,8 +4,8 @@ Ethos Framework interfaces and base classes.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple, Optional
-from ..models import Intention, ToolCall
-from ..config import EthosConfig
+from ..core.models import Intention, ToolCall
+from ..core.config import EthosConfig
 
 
 class EthosFramework(ABC):

@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 import numpy as np
 
-from ..models import SemanticVector, Intention, MemoryTrace, ToolCall
-from ..config import LogosConfig
+from ..core.models import SemanticVector, Intention, MemoryTrace, ToolCall
+from ..core.config import LogosConfig
 
 
 class LogosLayer(ABC):

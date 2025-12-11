@@ -16,9 +16,9 @@ from datetime import datetime
 import logging
 
 from .interfaces import MemorySystem
-from ..models import MemoryTrace, SemanticVector
-from ..config import MemoryConfig
-from ..math_utils import (
+from ..core.models import MemoryTrace, SemanticVector
+from ..core.config import MemoryConfig
+from ..core.math_utils import (
     cosine_similarity, euclidean_distance, find_k_nearest_neighbors,
     compute_similarity_weights
 )

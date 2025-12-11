@@ -11,9 +11,9 @@ import time
 import logging
 
 from .interfaces import PathosLayer as PathosLayerInterface
-from ..models import SemanticVector, MemoryTrace, PathosState
-from ..config import PathosConfig
-from ..math_utils import (
+from ..core.models import SemanticVector, MemoryTrace, PathosState
+from ..core.config import PathosConfig
+from ..core.math_utils import (
     tanh_squash, compute_homeostatic_balance, compute_state_change_penalty,
     cosine_similarity, compute_similarity_weights, sigmoid_squash
 )

@@ -11,10 +11,10 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="autonomous-logos-pathos-agent",
+    name="eros-enhanced-reasoning-system",
     version="0.1.0",
     author="Agent Development Team",
-    description="An autonomous agent with Logos-Pathos-Memory architecture",
+    description="E.R.O.S — Enhanced Reasoning & Operational System",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
@@ -43,7 +43,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "autonomous-agent=src.main:main",
+            "eros=main:main",
         ],
     },
 )

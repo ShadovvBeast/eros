@@ -6,8 +6,8 @@ from abc import ABC, abstractmethod
 from typing import Tuple, List, Optional, Dict
 import numpy as np
 
-from ..models import SemanticVector, MemoryTrace
-from ..config import PathosConfig
+from ..core.models import SemanticVector, MemoryTrace
+from ..core.config import PathosConfig
 
 
 class PathosLayer(ABC):

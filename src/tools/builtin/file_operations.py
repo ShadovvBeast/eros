@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime
 
 from ..interfaces import Tool
-from ...models import ToolResult
+from ...core.models import ToolResult
 
 
 class FileOperationTool(Tool):

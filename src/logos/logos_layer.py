@@ -9,10 +9,10 @@ import numpy as np
 from datetime import datetime
 
 from .interfaces import LogosLayer as LogosLayerInterface
-from ..models import SemanticVector, Intention, MemoryTrace, ToolCall
-from ..config import LogosConfig
-from ..math_utils import cosine_similarity, normalize_vector
-from ..logging_config import instrumentation
+from ..core.models import SemanticVector, Intention, MemoryTrace, ToolCall
+from ..core.config import LogosConfig
+from ..core.math_utils import cosine_similarity, normalize_vector
+from ..core.logging_config import instrumentation
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 """
-Pytest configuration and fixtures for the Autonomous Logos-Pathos-Memory Agent tests.
+Pytest configuration and fixtures for E.R.O.S (Enhanced Reasoning & Operational System) tests.
 """
 
 import pytest
@@ -7,8 +7,8 @@ import numpy as np
 from hypothesis import settings, Verbosity
 from typing import Dict, Any
 
-from src.config import AgentConfig, PathosConfig, EthosConfig, LogosConfig, MemoryConfig, ToolConfig
-from src.models import PathosState, SemanticVector, MemoryTrace, Intention
+from src.core.config import AgentConfig, PathosConfig, EthosConfig, LogosConfig, MemoryConfig, ToolConfig
+from src.core.models import PathosState, SemanticVector, MemoryTrace, Intention
 
 
 # Configure Hypothesis for property-based testing

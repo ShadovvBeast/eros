@@ -4,8 +4,8 @@ Tool Layer interfaces and base classes.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, Tuple
-from ..models import ToolCall, ToolResult
-from ..config import ToolConfig
+from ..core.models import ToolCall, ToolResult
+from ..core.config import ToolConfig
 
 
 class Tool(ABC):

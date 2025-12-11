@@ -6,8 +6,8 @@ import re
 import logging
 from typing import List, Dict, Any, Tuple, Optional
 from .interfaces import EthosFramework
-from ..models import Intention, ToolCall
-from ..config import EthosConfig
+from ..core.models import Intention, ToolCall
+from ..core.config import EthosConfig
 
 logger = logging.getLogger(__name__)
 

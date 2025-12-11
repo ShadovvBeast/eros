@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 import json
 
 from .interfaces import Tool, ToolLayer as ToolLayerInterface
-from ..models import ToolCall, ToolResult
-from ..config import ToolConfig
+from ..core.models import ToolCall, ToolResult
+from ..core.config import ToolConfig
 from ..ethos.interfaces import EthosFramework
 
 logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ import time
 from typing import Dict, Any, Optional, Tuple
 
 from ..interfaces import Tool
-from ...models import ToolResult
+from ...core.models import ToolResult
 from .server_manager import MCPServerManager, MCPToolSchema
 
 

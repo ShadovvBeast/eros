@@ -1,0 +1,215 @@
+{
+  "export_timestamp": "2025-12-11T13:38:50.279920",
+  "session_status": {
+    "state": "stopping",
+    "stats": {
+      "session_id": "7e49e31d-ecde-4694-bd22-e6e24dec3a26",
+      "start_time": "2025-12-11T13:36:13.597475",
+      "end_time": "2025-12-11T13:38:50.279843",
+      "duration_seconds": 156.682368,
+      "total_cycles": 723,
+      "successful_cycles": 723,
+      "failed_cycles": 0,
+      "total_tool_calls": 10,
+      "successful_tool_calls": 0,
+      "memory_events": 13,
+      "cycles_per_minute": 276.8658691704225,
+      "success_rate": 1.0,
+      "errors": [],
+      "performance_metrics": {
+        "memory_usage_mb": 265.1328125,
+        "cpu_percent": 0.0,
+        "cycles_per_minute": 277.79263081084
+      }
+    },
+    "config": {
+      "duration_minutes": 0.5,
+      "max_cycles": null,
+      "agent_identity": "Autonomous Research Agent",
+      "pathos_dimension": 128,
+      "memory_capacity": 1000,
+      "exploration_rate": 0.3,
+      "enable_hardware_monitoring": true,
+      "enable_real_time_visualization": true,
+      "save_session_data": true,
+      "max_memory_usage_mb": 1024,
+      "max_cpu_percent": 80.0,
+      "emergency_stop_on_error": true,
+      "output_directory": null,
+      "auto_export_interval": 100
+    },
+    "safety_violations": [],
+    "output_directory": "session_output_20251211_133613"
+  },
+  "collector_metrics": {
+    "runtime_seconds": 156.682481,
+    "total_cycles": 723,
+    "total_memory_events": 13,
+    "total_tool_calls": 10,
+    "total_errors": 0,
+    "preference_changes": 0,
+    "behavior_patterns_analyzed": 714,
+    "attractor_patterns_recorded": 723,
+    "preference_drift_analyses": 0,
+    "avg_cycle_time": 0.024344001733086085
+  },
+  "hardware_summary": {
+    "timestamp": "2025-12-11T13:38:50.280502",
+    "system_info": {
+      "error": "'HardwareMonitor' object has no attribute 'gpu_available'"
+    },
+    "current_metrics": {
+      "cpu": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "cpu_percent": 8.2,
+        "cpu_per_core": [
+          11.5,
+          0.4,
+          9.3,
+          4.5,
+          43.1,
+          10.6,
+          37.6,
+          22.2,
+          9.4,
+          2.8,
+          16.0,
+          3.1,
+          18.3,
+          0.1,
+          14.5,
+          1.0,
+          8.1,
+          7.9,
+          7.2,
+          8.2,
+          5.6,
+          3.7,
+          2.5,
+          2.0,
+          1.0,
+          0.8,
+          0.4,
+          0.4,
+          2.4,
+          1.8,
+          1.6,
+          3.9
+        ],
+        "cpu_freq_current": 2200.0,
+        "cpu_freq_min": 0.0,
+        "cpu_freq_max": 2200.0,
+        "load_avg": [
+          0.53,
+          0.25,
+          0.1
+        ],
+        "cpu_count": 32
+      },
+      "memory": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "virtual_total": 34070192128,
+        "virtual_available": 14305714176,
+        "virtual_used": 19764477952,
+        "virtual_percent": 58.0,
+        "virtual_free": 14305714176,
+        "swap_total": 20401094656,
+        "swap_used": 125190144,
+        "swap_free": 20275904512,
+        "swap_percent": 0.6
+      },
+      "disk": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "read_bytes": 24935693312,
+        "write_bytes": 75612418560,
+        "read_count": 752533,
+        "write_count": 3501469,
+        "read_rate": 695042.3820334802,
+        "write_rate": 2464312.5420215675,
+        "disk_usage": [
+          {
+            "device": "C:\\",
+            "mountpoint": "C:\\",
+            "total": 1021821579264,
+            "used": 286067822592,
+            "free": 735753756672,
+            "percent": 27.995868202162022
+          }
+        ]
+      },
+      "network": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "bytes_sent": 792630628,
+        "bytes_recv": 913419933,
+        "packets_sent": 407277,
+        "packets_recv": 1161127,
+        "bytes_sent_rate": 36856.377436257375,
+        "bytes_recv_rate": 5089.013619547575
+      },
+      "gpu": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "gpus": []
+      },
+      "temperature": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "temperatures": {}
+      },
+      "process": {
+        "timestamp": "2025-12-11T13:38:50.280502",
+        "pid": 20300,
+        "cpu_percent": 53.5,
+        "memory_info": {
+          "rss": 278167552,
+          "vms": 1811976192,
+          "num_page_faults": 3806781,
+          "peak_wset": 282968064,
+          "wset": 278167552,
+          "peak_paged_pool": 564768,
+          "paged_pool": 531120,
+          "peak_nonpaged_pool": 149664,
+          "nonpaged_pool": 83000,
+          "pagefile": 1811976192,
+          "peak_pagefile": 1818140672,
+          "private": 1811976192
+        },
+        "memory_percent": 0.8164543098405154,
+        "num_threads": 54,
+        "create_time": 1765452948.4594808,
+        "status": "running",
+        "system_processes": 345,
+        "top_cpu_processes": [
+          {
+            "memory_percent": 2.4044478437993737e-05,
+            "pid": 0,
+            "cpu_percent": 2815.9,
+            "name": "System Idle Process"
+          },
+          {
+            "memory_percent": 3.8846379586814876,
+            "pid": 2336,
+            "cpu_percent": 93.1,
+            "name": "Kiro.exe"
+          },
+          {
+            "memory_percent": 0.8180652898958609,
+            "pid": 20300,
+            "cpu_percent": 50.9,
+            "name": "python3.13.exe"
+          },
+          {
+            "memory_percent": 0.8723937889265078,
+            "pid": 36624,
+            "cpu_percent": 34.4,
+            "name": "Kiro.exe"
+          },
+          {
+            "memory_percent": 0.5211640701435143,
+            "pid": 37168,
+            "cpu_percent": 25.0,
+            "name": "Kiro.exe"
+          }
+        ]
+      }
+    }
+  }
+}
