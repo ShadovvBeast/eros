@@ -13,6 +13,10 @@ from typing import Dict, List, Any, Optional, Callable
 from collections import deque
 import json
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import with fallback for different execution contexts
 try:
@@ -88,7 +92,7 @@ except ImportError:
 from .session_controls import SessionControlPanel
 from .log_system import LogAuditSystem
 from .tabs import (
-    HealthTab, HardwareTab, PathosTab, MemoryTab,
+    HealthTab, HardwareTab, PathosTab, MemoryTab, MemoryTableTab,
     PreferenceTab, AttractorTab, PerformanceTab,
     ThreadManagementTab, LogAuditTab
 )
@@ -220,6 +224,7 @@ class InteractiveDashboard:
         self.tabs['hardware'] = HardwareTab(self.notebook, self.hardware_monitor)
         self.tabs['pathos'] = PathosTab(self.notebook, self.collector, self.pathos_states)
         self.tabs['memory'] = MemoryTab(self.notebook, self.memory_traces)
+        self.tabs['memory_table'] = MemoryTableTab(self.notebook, self.memory_traces)
         self.tabs['preference'] = PreferenceTab(self.notebook, self.collector)
         self.tabs['attractor'] = AttractorTab(self.notebook, self.collector)
         self.tabs['performance'] = PerformanceTab(self.notebook, self.collector)
@@ -339,6 +344,8 @@ class InteractiveDashboard:
                     self.memory_traces = session_agent.memory.traces
                     if 'memory' in self.tabs:
                         self.tabs['memory'].memory_traces = self.memory_traces
+                    if 'memory_table' in self.tabs:
+                        self.tabs['memory_table'].memory_traces = self.memory_traces
     
     def _print_collector_debug(self):
         """Print debug information about collector status."""
@@ -393,9 +400,11 @@ class InteractiveDashboard:
             if session_agent and hasattr(session_agent, 'memory'):
                 if hasattr(session_agent.memory, 'traces'):
                     self.memory_traces = session_agent.memory.traces
-                    # Update memory tab
+                    # Update memory tabs
                     if 'memory' in self.tabs:
                         self.tabs['memory'].memory_traces = self.memory_traces
+                    if 'memory_table' in self.tabs:
+                        self.tabs['memory_table'].memory_traces = self.memory_traces
                         print("✅ Dashboard connected to agent memory traces")
             
             if not self.is_monitoring:

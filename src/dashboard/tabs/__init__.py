@@ -8,6 +8,7 @@ from .health_tab import HealthTab
 from .hardware_tab import HardwareTab
 from .pathos_tab import PathosTab
 from .memory_tab import MemoryTab
+from .memory_table_tab import MemoryTableTab
 from .preference_tab import PreferenceTab
 from .attractor_tab import AttractorTab
 from .performance_tab import PerformanceTab
@@ -19,6 +20,7 @@ __all__ = [
     'HardwareTab', 
     'PathosTab',
     'MemoryTab',
+    'MemoryTableTab',
     'PreferenceTab',
     'AttractorTab',
     'PerformanceTab',

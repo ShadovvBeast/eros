@@ -97,11 +97,27 @@ class InstrumentationCollector:
         """Record Pathos state trajectory"""
         if not self.enable_monitoring:
             return
+        
+        # Store more detailed state information for visualization
+        if hasattr(state_vector, 'shape') and len(state_vector.shape) > 0:
+            state_norm = float(np.linalg.norm(state_vector))
+            # Store first 20 components for visualization (to avoid memory issues)
+            state_components = state_vector[:20].tolist() if len(state_vector) >= 20 else state_vector.tolist()
+            state_mean = float(np.mean(state_vector))
+            state_std = float(np.std(state_vector))
+        else:
+            state_norm = 0.0
+            state_components = []
+            state_mean = 0.0
+            state_std = 0.0
             
         self.metrics['pathos_trajectories'].append({
             'cycle': cycle,
             'timestamp': datetime.now().isoformat(),
-            'state_norm': float(np.linalg.norm(state_vector)) if hasattr(state_vector, 'shape') else 0.0,
+            'state_norm': state_norm,
+            'state_components': state_components,
+            'state_mean': state_mean,
+            'state_std': state_std,
             'internal_reward': internal_reward,
             'homeostatic_balance': homeostatic_balance
         })

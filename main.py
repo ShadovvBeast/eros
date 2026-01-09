@@ -8,6 +8,10 @@ This script provides a unified interface to launch different components of the s
 import sys
 import argparse
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
 
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent / "src"))

@@ -14,6 +14,10 @@ from enum import Enum
 import json
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 try:
     from ..core.agent import AutonomousAgent
@@ -214,6 +218,27 @@ class SessionManager:
         """Add callback for errors"""
         self.error_callbacks.append(callback)
     
+    def set_prompt_debugging(self, enabled: bool):
+        """Enable or disable prompt debugging for this session."""
+        try:
+            from ..core.prompt_debugger import prompt_debugger
+            if enabled:
+                prompt_debugger.enable_debugging()
+                print("🔍 Prompt debugging enabled for this session")
+            else:
+                prompt_debugger.disable_debugging()
+                print("🔍 Prompt debugging disabled for this session")
+        except ImportError:
+            print("⚠️  Prompt debugger not available")
+    
+    def is_prompt_debugging_enabled(self) -> bool:
+        """Check if prompt debugging is enabled."""
+        try:
+            from ..core.prompt_debugger import prompt_debugger
+            return prompt_debugger.is_enabled()
+        except ImportError:
+            return False
+    
     def _set_state(self, new_state: SessionState):
         """Set session state and notify callbacks"""
         if self.state != new_state:
@@ -304,19 +329,29 @@ class SessionManager:
             self._set_state(SessionState.STOPPING)
             self.stop_event.set()
             
-            # Wait for threads to complete
-            if self.session_thread:
+            # Check if we're being called from within the session thread
+            import threading
+            current_thread = threading.current_thread()
+            
+            # Wait for threads to complete (but not if we're in the session thread)
+            if self.session_thread and current_thread != self.session_thread:
                 self.session_thread.join(timeout=5)
-            if self.monitoring_thread:
+            elif current_thread == self.session_thread:
+                print("Stop called from session thread - will exit after current cycle")
+                
+            if self.monitoring_thread and current_thread != self.monitoring_thread:
                 self.monitoring_thread.join(timeout=2)
             
             # Stop hardware monitoring
             self.hardware_monitor.stop_monitoring()
             
-            # Finalize session
-            self._finalize_session()
-            
-            self._set_state(SessionState.COMPLETED)
+            # Finalize session (only if not called from session thread)
+            if current_thread != self.session_thread:
+                self._finalize_session()
+                self._set_state(SessionState.COMPLETED)
+            else:
+                # If called from session thread, finalization will happen when the loop exits
+                print("Session finalization will occur when thread exits")
     
     def emergency_stop(self, reason: str):
         """Emergency stop with reason"""
@@ -328,7 +363,18 @@ class SessionManager:
             'type': 'emergency_stop'
         })
         
-        self.stop_session()
+        # Set stop event to signal threads to stop, but don't join from within the thread
+        self._set_state(SessionState.STOPPING)
+        self.stop_event.set()
+        
+        # If we're not in the session thread, we can safely call stop_session
+        import threading
+        current_thread = threading.current_thread()
+        if current_thread != self.session_thread:
+            self.stop_session()
+        else:
+            # If we're in the session thread, just set the stop event and let the loop exit naturally
+            print("Emergency stop initiated from session thread - will exit gracefully")
     
     def _initialize_session(self):
         """Initialize session components"""
@@ -340,9 +386,9 @@ class SessionManager:
         self.collector = InstrumentationCollector()
         
         # Initialize full agent with all layers
-        agent_config = AgentConfig()
-        agent_config.pathos_state_dimension = self.config.pathos_dimension
-        agent_config.memory_capacity = self.config.memory_capacity
+        agent_config = AgentConfig.from_env()
+        agent_config.pathos.state_dimension = self.config.pathos_dimension
+        agent_config.memory.max_memory_traces = self.config.memory_capacity
         
         self.agent = AutonomousAgent(agent_config, instrumentation=self.collector)
         
@@ -431,6 +477,15 @@ class SessionManager:
             print(f"Session loop error: {e}")
             self._notify_error(e)
             self._set_state(SessionState.ERROR)
+        finally:
+            # Finalize session when loop exits
+            try:
+                self._finalize_session()
+                if self.state != SessionState.ERROR:
+                    self._set_state(SessionState.COMPLETED)
+            except Exception as e:
+                print(f"Session finalization error: {e}")
+                self._set_state(SessionState.ERROR)
     
     def _execute_cycle(self, cycle: int) -> bool:
         """Execute a single agent cycle"""

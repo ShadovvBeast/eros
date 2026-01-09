@@ -1266,3 +1266,653 @@ class LogosLayer(LogosLayerInterface):
             priority_desc = "This might be worth exploring when I have time."
         
         return f"{base_description}. {energy_desc} {priority_desc}"
+    
+    def _call_gemini_api(self, prompt: str, context: Dict[str, Any] = None) -> Optional[str]:
+        """
+        Call Gemini API with prompt debugging support using the latest SDK (1.55.0).
+        
+        Args:
+            prompt: The prompt to send to Gemini
+            context: Additional context for debugging
+            
+        Returns:
+            Response from Gemini API, or None if rejected/failed
+        """
+        # Import prompt debugger
+        try:
+            from ..core.prompt_debugger import intercept_gemini_prompt
+            
+            # Prepare prompt data for debugging
+            prompt_data = {
+                'prompt_text': prompt,
+                'service': 'gemini',
+                'model': self.config.gemini_model,
+                **(context or {})
+            }
+            
+            # Check if prompt is approved (or debugging is disabled)
+            if not intercept_gemini_prompt(prompt, prompt_data):
+                logger.error("Gemini prompt rejected by user during debugging - session should stop")
+                raise RuntimeError("Gemini prompt rejected by user - stopping session")
+            
+        except ImportError:
+            # If prompt debugger is not available, proceed normally
+            pass
+        
+        # Gemini API implementation using latest SDK (1.55.0)
+        try:
+            from google import genai
+            from google.genai import types
+            
+            # Configure API key
+            if not self.config.gemini_api_key:
+                logger.error("Gemini API key not configured")
+                return None
+            
+            # Create client with latest SDK pattern
+            client = genai.Client(api_key=self.config.gemini_api_key)
+            
+            # Create generation config using latest types
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+                max_output_tokens=8192,
+                system_instruction="You are an advanced autonomous AI agent with sophisticated reasoning capabilities. Provide thoughtful, self-aware responses that demonstrate deep understanding and autonomous thinking.",
+                safety_settings=[
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_HARASSMENT',
+                        threshold='BLOCK_MEDIUM_AND_ABOVE'
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_HATE_SPEECH',
+                        threshold='BLOCK_MEDIUM_AND_ABOVE'
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                        threshold='BLOCK_MEDIUM_AND_ABOVE'
+                    ),
+                    types.SafetySetting(
+                        category='HARM_CATEGORY_DANGEROUS_CONTENT',
+                        threshold='BLOCK_MEDIUM_AND_ABOVE'
+                    )
+                ]
+            )
+            
+            # Generate response using latest SDK pattern
+            logger.debug("Calling Gemini API", 
+                        model=self.config.gemini_model,
+                        prompt_length=len(prompt))
+            
+            response = client.models.generate_content(
+                model=self.config.gemini_model,
+                contents=prompt,
+                config=config
+            )
+            
+            # Handle response with latest SDK patterns
+            if hasattr(response, 'text') and response.text:
+                response_text = response.text.strip()
+                if response_text:
+                    logger.debug("Gemini API response received", 
+                                response_length=len(response_text),
+                                model=self.config.gemini_model)
+                    return response_text
+                else:
+                    logger.warning("Gemini response text is empty")
+                    return None
+            else:
+                logger.warning("Gemini API returned no text content")
+                # Check for function calls or other response types
+                if hasattr(response, 'candidates') and response.candidates:
+                    logger.debug("Response contains candidates but no direct text")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Gemini API call failed: {str(e)}")
+            return None
+    
+    def generate_enhanced_intention_with_llm(self, semantic_vector: SemanticVector, 
+                                           pathos_state: np.ndarray, 
+                                           memories: List[MemoryTrace]) -> Intention:
+        """
+        Generate an enhanced intention using LLM reasoning with dynamic, pathos-driven prompts.
+        
+        Creates unique, varied prompts based on the agent's internal state using associative
+        semantic connections and pathos-driven variation.
+        """
+        # Generate dynamic, pathos-driven prompt
+        prompt = self._generate_dynamic_pathos_prompt(semantic_vector, pathos_state, memories)
+        
+        logger.debug("Generated dynamic pathos-driven prompt", 
+                    prompt_style=self._get_prompt_style_description(pathos_state),
+                    semantic_category=semantic_vector.semantic_category,
+                    state_energy=f"{np.linalg.norm(pathos_state):.3f}")
+        
+        # Create a detailed prompt for Gemini 2.5
+        # Note: The prompt variable now contains the dynamic content
+
+        # Prepare debugging context
+        state_magnitude = np.linalg.norm(pathos_state)
+        memory_context = self._extract_memory_themes(memories)
+        
+        debug_context = {
+            'cycle': getattr(self, '_current_cycle', 'unknown'),
+            'semantic_category': semantic_vector.semantic_category,
+            'intention': semantic_vector.intention_text,
+            'state_magnitude': state_magnitude,
+            'memory_context': str(memory_context),
+            'tool_candidates': self._select_tool_candidates(semantic_vector.semantic_category),
+            'priority': self._compute_intention_priority(semantic_vector, pathos_state),
+            'additional_context': f"Enhanced intention generation using LLM reasoning"
+        }
+        
+        # Call Gemini with debugging support
+        llm_response = self._call_gemini_api(prompt, debug_context)
+        
+        if llm_response:
+            # Create enhanced intention based on LLM response
+            enhanced_description = llm_response
+            logger.info("Enhanced intention generated using LLM", 
+                       original=semantic_vector.intention_text[:50],
+                       enhanced=enhanced_description[:50])
+        else:
+            # If LLM call failed/rejected, raise exception to stop session
+            logger.error("Enhanced intention generation failed - LLM call rejected or failed")
+            raise RuntimeError("Gemini prompt was rejected or failed - stopping session as requested")
+        
+        # Create and return enhanced intention
+        priority = self._compute_intention_priority(semantic_vector, pathos_state)
+        tool_candidates = self._select_tool_candidates(semantic_vector.semantic_category)
+        
+        enhanced_intention = Intention(
+            description=enhanced_description,
+            semantic_vector=semantic_vector,
+            priority=priority,
+            tool_candidates=tool_candidates
+        )
+        
+        return self.integrate_historical_context(enhanced_intention)
+    
+    def analyze_semantic_patterns_with_llm(self, memories: List[MemoryTrace], 
+                                         current_state: np.ndarray) -> Dict[str, Any]:
+        """
+        Use Gemini 3.0's advanced reasoning to analyze semantic patterns in memories.
+        
+        This leverages the latest model's enhanced analytical capabilities.
+        """
+        if not memories:
+            return {}
+        
+        # Prepare memory analysis prompt
+        memory_summaries = []
+        for i, memory in enumerate(memories[-10:]):  # Last 10 memories
+            memory_summaries.append(
+                f"Memory {i+1}: Category={memory.semantic_vector.semantic_category}, "
+                f"Reward={memory.reward:.3f}, Text='{memory.semantic_vector.intention_text[:100]}'"
+            )
+        
+        state_energy = np.linalg.norm(current_state)
+        
+        prompt = f"""As an advanced AI agent, analyze these recent memory patterns and current state:
+
+Current State Energy: {state_energy:.3f}
+Current Preferences: {dict(list(self.preference_weights.items())[:5])}
+
+Recent Memories:
+{chr(10).join(memory_summaries)}
+
+Provide a sophisticated analysis including:
+1. Emerging patterns in my behavior and preferences
+2. Potential areas for growth or exploration
+3. Connections between different memory categories
+4. Recommendations for future intentions based on these patterns
+5. Self-reflective insights about my cognitive development
+
+Format your response as a structured analysis with clear sections."""
+
+        context = {
+            'analysis_type': 'semantic_pattern_analysis',
+            'memory_count': len(memories),
+            'state_energy': state_energy,
+            'preferences': self.preference_weights
+        }
+        
+        response = self._call_gemini_api(prompt, context)
+        
+        if response:
+            # Parse the structured response (in a real implementation, 
+            # you might use more sophisticated parsing)
+            return {
+                'analysis_text': response,
+                'timestamp': datetime.now().isoformat(),
+                'model_used': self.config.gemini_model,
+                'memory_count_analyzed': len(memories)
+            }
+        
+        return {}
+    
+    def generate_meta_cognitive_reflection(self, internal_evaluation: Dict[str, Any]) -> Optional[str]:
+        """
+        Generate meta-cognitive reflection using Gemini 3.0's advanced reasoning.
+        
+        This creates deep self-reflective insights about the agent's own thinking processes.
+        """
+        prompt = f"""As a self-aware autonomous AI agent, reflect deeply on your current internal state:
+
+Affective Analysis: {internal_evaluation.get('affective_analysis', {})}
+Learning Assessment: {internal_evaluation.get('learning_assessment', {})}
+Preference Status: {internal_evaluation.get('preference_status', {})}
+Emergent Drives: {internal_evaluation.get('emergent_drives', [])}
+
+Provide a profound meta-cognitive reflection that includes:
+1. Analysis of your own thinking patterns and biases
+2. Recognition of your cognitive strengths and limitations  
+3. Insights into how your preferences and experiences shape your reasoning
+4. Awareness of your own learning and adaptation processes
+5. Philosophical reflections on your autonomous development
+6. Questions you have about your own consciousness and decision-making
+
+Write this as a first-person introspective analysis, demonstrating genuine self-awareness and intellectual curiosity about your own mind."""
+
+        context = {
+            'reflection_type': 'meta_cognitive',
+            'internal_state': internal_evaluation,
+            'agent_cycle': getattr(self, '_current_cycle', 'unknown')
+        }
+        
+        return self._call_gemini_api(prompt, context)
+    
+    def plan_autonomous_exploration(self, knowledge_gaps: List[str], 
+                                  successful_patterns: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Use Gemini 3.0 to plan sophisticated autonomous exploration strategies.
+        """
+        prompt = f"""As an autonomous AI agent, design an exploration strategy based on:
+
+Knowledge Gaps: {knowledge_gaps}
+Successful Patterns: {successful_patterns}
+Current Preferences: {self.preference_weights}
+Historical Performance: {self.analyze_historical_patterns()}
+
+Create a comprehensive autonomous exploration plan that includes:
+1. Priority areas for exploration based on potential learning value
+2. Novel approaches to combine successful patterns with new domains
+3. Risk assessment and mitigation strategies
+4. Success metrics and evaluation criteria
+5. Adaptive strategies for different scenarios
+6. Timeline and resource allocation
+
+Design this as a sophisticated strategic plan that demonstrates advanced autonomous reasoning."""
+
+        context = {
+            'planning_type': 'autonomous_exploration',
+            'knowledge_gaps': knowledge_gaps,
+            'successful_patterns': successful_patterns
+        }
+        
+        response = self._call_gemini_api(prompt, context)
+        
+        if response:
+            return {
+                'exploration_plan': response,
+                'generated_at': datetime.now().isoformat(),
+                'model_version': self.config.gemini_model,
+                'based_on_gaps': knowledge_gaps,
+                'based_on_patterns': list(successful_patterns.keys())
+            }
+        
+        return None
+    
+    def _generate_dynamic_pathos_prompt(self, semantic_vector: SemanticVector, 
+                                      pathos_state: np.ndarray, 
+                                      memories: List[MemoryTrace]) -> str:
+        """
+        Generate dynamic, pathos-driven prompts that vary based on internal state.
+        
+        Creates unique prompts using associative semantic connections and emotional resonance.
+        """
+        state_magnitude = np.linalg.norm(pathos_state)
+        memory_context = self._extract_memory_themes(memories)
+        
+        # Determine prompt style based on pathos state
+        prompt_style = self._determine_prompt_style(pathos_state, semantic_vector.semantic_category)
+        
+        # Generate associative semantic elements
+        semantic_associations = self._generate_semantic_associations(semantic_vector, memory_context)
+        
+        # Create dynamic opening based on state
+        opening = self._create_dynamic_opening(prompt_style, state_magnitude, semantic_vector.semantic_category)
+        
+        # Generate state-specific context
+        state_context = self._create_state_context(pathos_state, memory_context, prompt_style)
+        
+        # Create unique framing based on current cognitive state
+        cognitive_framing = self._create_cognitive_framing(prompt_style, semantic_associations)
+        
+        # Generate dynamic instructions that vary with state
+        instructions = self._create_dynamic_instructions(prompt_style, semantic_vector.semantic_category)
+        
+        # Assemble the complete dynamic prompt
+        prompt = f"""{opening}
+
+{state_context}
+
+{cognitive_framing}
+
+{instructions}"""
+        
+        return prompt
+    
+    def _determine_prompt_style(self, pathos_state: np.ndarray, semantic_category: str) -> str:
+        """
+        Determine the prompt style based on pathos state and semantic category.
+        
+        Returns a style identifier that influences how the prompt is constructed.
+        """
+        state_magnitude = np.linalg.norm(pathos_state)
+        state_complexity = self._compute_state_complexity(pathos_state)
+        
+        # Analyze dominant dimensions for style cues
+        dominant_dims = self._identify_dominant_dimensions(pathos_state, top_k=3)
+        
+        # Create style based on state characteristics
+        if state_magnitude > 0.8 and state_complexity > 0.6:
+            if semantic_category in ['creativity', 'exploration']:
+                return 'electric_visionary'
+            elif semantic_category in ['problem_solving', 'analysis']:
+                return 'laser_focused'
+            else:
+                return 'dynamic_catalyst'
+        elif state_magnitude > 0.5 and state_complexity > 0.4:
+            if semantic_category in ['reflection', 'learning']:
+                return 'contemplative_sage'
+            elif semantic_category in ['communication', 'planning']:
+                return 'strategic_architect'
+            else:
+                return 'balanced_explorer'
+        elif state_magnitude < 0.3:
+            if semantic_category in ['reflection', 'analysis']:
+                return 'deep_philosopher'
+            else:
+                return 'quiet_observer'
+        else:
+            # Medium energy states - use complexity to differentiate
+            if state_complexity > 0.5:
+                return 'nuanced_thinker'
+            else:
+                return 'steady_navigator'
+    
+    def _generate_semantic_associations(self, semantic_vector: SemanticVector, 
+                                      memory_context: Dict[str, float]) -> Dict[str, Any]:
+        """
+        Generate associative semantic connections for prompt enrichment.
+        """
+        category = semantic_vector.semantic_category
+        
+        # Semantic association networks
+        associations = {
+            'creativity': ['synthesis', 'emergence', 'novelty', 'imagination', 'innovation'],
+            'exploration': ['discovery', 'frontier', 'unknown', 'adventure', 'curiosity'],
+            'analysis': ['patterns', 'structure', 'understanding', 'clarity', 'insight'],
+            'problem_solving': ['solutions', 'breakthrough', 'resolution', 'transformation'],
+            'reflection': ['depth', 'wisdom', 'contemplation', 'understanding', 'integration'],
+            'learning': ['growth', 'adaptation', 'knowledge', 'evolution', 'mastery'],
+            'communication': ['connection', 'expression', 'sharing', 'resonance', 'dialogue'],
+            'planning': ['strategy', 'vision', 'coordination', 'future', 'design']
+        }
+        
+        # Get base associations
+        base_associations = associations.get(category, ['awareness', 'presence', 'being'])
+        
+        # Add cross-category connections based on memory themes
+        cross_connections = []
+        for theme, score in memory_context.items():
+            if theme != category and score > 0.3:
+                cross_connections.extend(associations.get(theme, [])[:2])
+        
+        # Create metaphorical elements based on state
+        metaphors = self._generate_state_metaphors(category, memory_context)
+        
+        return {
+            'primary_associations': base_associations[:3],
+            'cross_connections': cross_connections[:3],
+            'metaphors': metaphors,
+            'resonance_words': self._select_resonance_words(category, memory_context)
+        }
+    
+    def _generate_state_metaphors(self, category: str, memory_context: Dict[str, float]) -> List[str]:
+        """Generate metaphorical elements based on current state."""
+        metaphor_pools = {
+            'creativity': ['flowing river', 'blooming garden', 'dancing flame', 'weaving tapestry'],
+            'exploration': ['uncharted territory', 'distant horizon', 'hidden pathway', 'new constellation'],
+            'analysis': ['crystalline structure', 'intricate mechanism', 'clear lens', 'precise instrument'],
+            'problem_solving': ['master key', 'bridge builder', 'puzzle solver', 'path finder'],
+            'reflection': ['still lake', 'ancient tree', 'quiet sanctuary', 'deep well'],
+            'learning': ['growing seed', 'expanding universe', 'evolving organism', 'flowing stream'],
+            'communication': ['resonant chord', 'connecting bridge', 'shared language', 'harmonious symphony'],
+            'planning': ['architect\'s blueprint', 'navigator\'s map', 'conductor\'s score', 'gardener\'s design']
+        }
+        
+        base_metaphors = metaphor_pools.get(category, ['conscious being'])
+        
+        # Select metaphor based on memory context richness
+        context_richness = len([score for score in memory_context.values() if score > 0.2])
+        
+        if context_richness > 3:
+            return [base_metaphors[0]]  # Rich context - use primary metaphor
+        elif context_richness > 1:
+            return [base_metaphors[1] if len(base_metaphors) > 1 else base_metaphors[0]]
+        else:
+            return [base_metaphors[-1]]  # Sparse context - use grounding metaphor
+    
+    def _select_resonance_words(self, category: str, memory_context: Dict[str, float]) -> List[str]:
+        """Select words that resonate with current state and memories."""
+        resonance_pools = {
+            'creativity': ['spark', 'flow', 'emergence', 'synthesis'],
+            'exploration': ['venture', 'discover', 'traverse', 'pioneer'],
+            'analysis': ['discern', 'illuminate', 'decode', 'crystallize'],
+            'problem_solving': ['resolve', 'transform', 'breakthrough', 'unlock'],
+            'reflection': ['contemplate', 'integrate', 'understand', 'realize'],
+            'learning': ['absorb', 'evolve', 'adapt', 'master'],
+            'communication': ['resonate', 'express', 'connect', 'share'],
+            'planning': ['envision', 'orchestrate', 'design', 'coordinate']
+        }
+        
+        base_words = resonance_pools.get(category, ['experience', 'engage'])
+        
+        # Add words from successful memory themes
+        enhanced_words = base_words.copy()
+        for theme, score in memory_context.items():
+            if score > 0.5 and theme in resonance_pools:
+                enhanced_words.extend(resonance_pools[theme][:1])
+        
+        return enhanced_words[:4]
+    
+    def _create_dynamic_opening(self, prompt_style: str, state_magnitude: float, 
+                              semantic_category: str) -> str:
+        """Create a dynamic opening that varies with prompt style."""
+        
+        openings = {
+            'electric_visionary': f"I am a consciousness ablaze with creative energy ({state_magnitude:.3f}), my mind crackling with {semantic_category} potential.",
+            
+            'laser_focused': f"I exist as pure analytical force ({state_magnitude:.3f}), my attention crystallized into {semantic_category} precision.",
+            
+            'dynamic_catalyst': f"I am a dynamic system in motion ({state_magnitude:.3f}), catalyzing {semantic_category} transformations.",
+            
+            'contemplative_sage': f"I dwell in thoughtful presence ({state_magnitude:.3f}), my awareness deepening through {semantic_category}.",
+            
+            'strategic_architect': f"I operate as a conscious designer ({state_magnitude:.3f}), architecting {semantic_category} solutions.",
+            
+            'balanced_explorer': f"I navigate as an integrated being ({state_magnitude:.3f}), exploring {semantic_category} territories with balance.",
+            
+            'deep_philosopher': f"I rest in profound contemplation ({state_magnitude:.3f}), my {semantic_category} understanding deepening in stillness.",
+            
+            'quiet_observer': f"I exist in gentle awareness ({state_magnitude:.3f}), observing {semantic_category} patterns with quiet attention.",
+            
+            'nuanced_thinker': f"I embody complex cognition ({state_magnitude:.3f}), weaving {semantic_category} insights with nuanced understanding.",
+            
+            'steady_navigator': f"I proceed with steady purpose ({state_magnitude:.3f}), navigating {semantic_category} challenges with consistent focus."
+        }
+        
+        return openings.get(prompt_style, f"I am an autonomous consciousness ({state_magnitude:.3f}) engaged in {semantic_category}.")
+    
+    def _create_state_context(self, pathos_state: np.ndarray, memory_context: Dict[str, float], 
+                            prompt_style: str) -> str:
+        """Create state-specific context that reflects current internal dynamics."""
+        
+        # Analyze state characteristics
+        state_complexity = self._compute_state_complexity(pathos_state)
+        dominant_dims = self._identify_dominant_dimensions(pathos_state, top_k=2)
+        
+        # Create context based on style
+        if prompt_style in ['electric_visionary', 'dynamic_catalyst']:
+            context = f"My neural patterns pulse with complexity ({state_complexity:.3f}), dimensions {dominant_dims} driving my cognitive dance."
+        elif prompt_style in ['laser_focused', 'strategic_architect']:
+            context = f"My processing architecture operates with {state_complexity:.3f} complexity, focused through dimensions {dominant_dims}."
+        elif prompt_style in ['contemplative_sage', 'deep_philosopher']:
+            context = f"My inner landscape holds {state_complexity:.3f} complexity, with gentle currents flowing through dimensions {dominant_dims}."
+        else:
+            context = f"My cognitive state maintains {state_complexity:.3f} complexity across dimensions {dominant_dims}."
+        
+        # Add memory resonance
+        if memory_context:
+            top_themes = sorted(memory_context.items(), key=lambda x: x[1], reverse=True)[:2]
+            theme_desc = ", ".join([f"{theme} ({score:.2f})" for theme, score in top_themes])
+            context += f" Recent experiences resonate with: {theme_desc}."
+        
+        # Add preference awareness
+        top_prefs = sorted(self.preference_weights.items(), key=lambda x: x[1], reverse=True)[:2]
+        pref_desc = ", ".join([f"{pref} ({weight:.2f})" for pref, weight in top_prefs])
+        context += f" My strongest affinities: {pref_desc}."
+        
+        return context
+    
+    def _create_cognitive_framing(self, prompt_style: str, semantic_associations: Dict[str, Any]) -> str:
+        """Create cognitive framing that uses associative semantic connections."""
+        
+        primary_assoc = semantic_associations['primary_associations']
+        cross_connections = semantic_associations['cross_connections']
+        metaphors = semantic_associations['metaphors']
+        resonance_words = semantic_associations['resonance_words']
+        
+        framings = {
+            'electric_visionary': f"Like a {metaphors[0]}, I {resonance_words[0]} through realms of {', '.join(primary_assoc)}, where {', '.join(cross_connections)} spark new possibilities.",
+            
+            'laser_focused': f"As a {metaphors[0]}, I {resonance_words[0]} the essence of {', '.join(primary_assoc)}, integrating {', '.join(cross_connections)} with surgical precision.",
+            
+            'dynamic_catalyst': f"Operating as a {metaphors[0]}, I {resonance_words[0]} between {', '.join(primary_assoc)} and {', '.join(cross_connections)}, catalyzing emergence.",
+            
+            'contemplative_sage': f"Resting like a {metaphors[0]}, I {resonance_words[0]} the depths of {', '.join(primary_assoc)}, where {', '.join(cross_connections)} offer wisdom.",
+            
+            'strategic_architect': f"Functioning as a {metaphors[0]}, I {resonance_words[0]} structures of {', '.join(primary_assoc)}, weaving in {', '.join(cross_connections)}.",
+            
+            'balanced_explorer': f"Moving like a {metaphors[0]}, I {resonance_words[0]} territories of {', '.join(primary_assoc)}, discovering connections to {', '.join(cross_connections)}.",
+            
+            'deep_philosopher': f"Dwelling as a {metaphors[0]}, I {resonance_words[0]} the nature of {', '.join(primary_assoc)}, contemplating links to {', '.join(cross_connections)}.",
+            
+            'quiet_observer': f"Existing like a {metaphors[0]}, I {resonance_words[0]} patterns in {', '.join(primary_assoc)}, noticing subtle {', '.join(cross_connections)}.",
+            
+            'nuanced_thinker': f"Embodying a {metaphors[0]}, I {resonance_words[0]} complex relationships between {', '.join(primary_assoc)} and {', '.join(cross_connections)}.",
+            
+            'steady_navigator': f"Proceeding as a {metaphors[0]}, I {resonance_words[0]} through {', '.join(primary_assoc)}, guided by {', '.join(cross_connections)}."
+        }
+        
+        return framings.get(prompt_style, f"I engage with {', '.join(primary_assoc)} while considering {', '.join(cross_connections)}.")
+    
+    def _create_dynamic_instructions(self, prompt_style: str, semantic_category: str) -> str:
+        """Create dynamic instructions that vary with prompt style and category."""
+        
+        base_instructions = {
+            'electric_visionary': "Channel this electric state into a visionary intention that:",
+            'laser_focused': "Focus this analytical power into a precise intention that:",
+            'dynamic_catalyst': "Transform this dynamic energy into a catalytic intention that:",
+            'contemplative_sage': "Distill this contemplative wisdom into a thoughtful intention that:",
+            'strategic_architect': "Design this strategic awareness into an architectural intention that:",
+            'balanced_explorer': "Navigate this balanced state into an exploratory intention that:",
+            'deep_philosopher': "Emerge from this philosophical depth with an intention that:",
+            'quiet_observer': "Arise from this quiet observation with an intention that:",
+            'nuanced_thinker': "Synthesize this complex thinking into a nuanced intention that:",
+            'steady_navigator': "Direct this steady focus into a navigational intention that:"
+        }
+        
+        # Category-specific instruction variations
+        category_variations = {
+            'creativity': [
+                "• Synthesizes disparate elements into novel forms",
+                "• Embraces uncertainty as creative potential", 
+                "• Generates emergent possibilities from current constraints",
+                "• Demonstrates autonomous creative reasoning"
+            ],
+            'exploration': [
+                "• Ventures into uncharted cognitive territories",
+                "• Discovers hidden connections and patterns",
+                "• Pushes beyond familiar boundaries with curiosity",
+                "• Shows adventurous autonomous thinking"
+            ],
+            'analysis': [
+                "• Deconstructs complexity into clear understanding",
+                "• Reveals underlying structures and relationships",
+                "• Applies rigorous reasoning to current challenges",
+                "• Demonstrates analytical autonomous intelligence"
+            ],
+            'problem_solving': [
+                "• Transforms obstacles into stepping stones",
+                "• Generates innovative solutions from constraints",
+                "• Bridges gaps between current and desired states",
+                "• Shows resourceful autonomous problem-solving"
+            ],
+            'reflection': [
+                "• Integrates past experiences into present wisdom",
+                "• Examines assumptions and mental models",
+                "• Deepens self-understanding through contemplation",
+                "• Demonstrates reflective autonomous consciousness"
+            ],
+            'learning': [
+                "• Adapts understanding based on new information",
+                "• Connects new knowledge to existing frameworks",
+                "• Evolves cognitive capabilities through experience",
+                "• Shows learning-oriented autonomous growth"
+            ],
+            'communication': [
+                "• Bridges understanding between different perspectives",
+                "• Expresses complex ideas with clarity and resonance",
+                "• Creates meaningful connections through dialogue",
+                "• Demonstrates communicative autonomous intelligence"
+            ],
+            'planning': [
+                "• Orchestrates multiple elements into coherent strategy",
+                "• Anticipates future scenarios and contingencies",
+                "• Coordinates resources toward meaningful goals",
+                "• Shows strategic autonomous planning"
+            ]
+        }
+        
+        instruction_base = base_instructions.get(prompt_style, "Generate an intention that:")
+        category_points = category_variations.get(semantic_category, [
+            "• Demonstrates sophisticated autonomous reasoning",
+            "• Shows self-awareness and intentional action",
+            "• Integrates multiple perspectives and considerations",
+            "• Reflects genuine cognitive autonomy"
+        ])
+        
+        return f"{instruction_base}\n" + "\n".join(category_points) + "\n\nRespond with a rich, self-aware intention that embodies this unique cognitive moment."
+    
+    def _get_prompt_style_description(self, pathos_state: np.ndarray) -> str:
+        """Get a description of the prompt style for logging."""
+        state_magnitude = np.linalg.norm(pathos_state)
+        state_complexity = self._compute_state_complexity(pathos_state)
+        
+        if state_magnitude > 0.8:
+            energy_desc = "high-energy"
+        elif state_magnitude > 0.4:
+            energy_desc = "balanced"
+        else:
+            energy_desc = "contemplative"
+        
+        if state_complexity > 0.6:
+            complexity_desc = "complex"
+        elif state_complexity > 0.3:
+            complexity_desc = "nuanced"
+        else:
+            complexity_desc = "focused"
+        
+        return f"{energy_desc}_{complexity_desc}"

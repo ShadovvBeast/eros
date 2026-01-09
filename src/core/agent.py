@@ -72,7 +72,26 @@ class AutonomousAgent:
             phase_start = time.time()
             recent_memories = self.memory.get_recent_traces(self.config.pathos.memory_retrieval_k)
             semantic_vector = self.logos.interpret_state(self.pathos.current_state, recent_memories)
-            intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
+            
+            # Check if enhanced LLM-based intention generation should be used
+            # (when cycle logos debugging is enabled, use enhanced generation for demonstration)
+            import os
+            if os.getenv('CYCLE_LOGOS_DEBUGGING', 'false').lower() == 'true':
+                # Store current cycle for debugging context
+                if hasattr(self.logos, '_current_cycle'):
+                    self.logos._current_cycle = self.cycle_count
+                else:
+                    setattr(self.logos, '_current_cycle', self.cycle_count)
+                
+                # Use enhanced LLM-based intention generation
+                intention = self.logos.generate_enhanced_intention_with_llm(
+                    semantic_vector, self.pathos.current_state, recent_memories
+                )
+                logger.debug("Using enhanced LLM-based intention generation due to debugging mode")
+            else:
+                # Use standard intention generation
+                intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
+            
             interest_signal = self.logos.compute_interest_signal(semantic_vector)
             phase_timings['logos'] = time.time() - phase_start
             

@@ -50,6 +50,7 @@ class LogAuditSystem:
         # Create the tab
         self._create_tab(notebook)
         self._setup_log_capture()
+        self._setup_prompt_debugging()
     
     def _create_tab(self, notebook):
         """Create comprehensive log and audit trail tab."""
@@ -176,6 +177,15 @@ class LogAuditSystem:
         ttk.Checkbutton(detail_frame, text="Detailed Cycle Logging", 
                        variable=self.detailed_logging_var,
                        command=self._toggle_detailed_logging).pack(side=tk.LEFT)
+        
+        # Cycle logos debugging toggle
+        debug_frame = ttk.Frame(parent)
+        debug_frame.pack(side=tk.LEFT, padx=(0, 10))
+        
+        self.cycle_logos_debugging_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(debug_frame, text="Cycle Logos Debugging", 
+                       variable=self.cycle_logos_debugging_var,
+                       command=self._toggle_cycle_logos_debugging).pack(side=tk.LEFT)
         
         # Search
         search_frame = ttk.Frame(parent)
@@ -661,6 +671,185 @@ class LogAuditSystem:
             # Reset to INFO level
             import logging
             logging.getLogger('autonomous_agent').setLevel(logging.INFO)
+    
+    def _toggle_cycle_logos_debugging(self):
+        """Toggle cycle logos debugging mode."""
+        if self.cycle_logos_debugging_var.get():
+            self._add_log_entry("SYSTEM", "WARNING", "🔍 Cycle Logos Debugging ENABLED - All Gemini prompts will require user review")
+            # Set global flag for prompt interception
+            self._enable_prompt_debugging()
+        else:
+            self._add_log_entry("SYSTEM", "INFO", "Cycle Logos Debugging disabled")
+            # Disable prompt interception
+            self._disable_prompt_debugging()
+    
+    def _enable_prompt_debugging(self):
+        """Enable prompt debugging mode."""
+        # Set a global flag that can be checked by the Logos layer
+        import os
+        os.environ['CYCLE_LOGOS_DEBUGGING'] = 'true'
+        
+        # Also set it on the session manager if available
+        if hasattr(self.session_manager, 'set_prompt_debugging'):
+            self.session_manager.set_prompt_debugging(True)
+    
+    def _disable_prompt_debugging(self):
+        """Disable prompt debugging mode."""
+        # Remove the global flag
+        import os
+        if 'CYCLE_LOGOS_DEBUGGING' in os.environ:
+            del os.environ['CYCLE_LOGOS_DEBUGGING']
+        
+        # Also disable it on the session manager if available
+        if hasattr(self.session_manager, 'set_prompt_debugging'):
+            self.session_manager.set_prompt_debugging(False)
+    
+    def show_prompt_review_dialog(self, prompt_data: Dict[str, Any]) -> bool:
+        """
+        Show prompt review dialog for user approval.
+        
+        Args:
+            prompt_data: Dictionary containing prompt information
+            
+        Returns:
+            True if user approves, False if rejected
+        """
+        # Create a new top-level window for the prompt review
+        review_window = tk.Toplevel()
+        review_window.title("🔍 Cycle Logos Debugging - Prompt Review")
+        review_window.geometry("800x600")
+        review_window.transient()
+        review_window.grab_set()  # Make it modal
+        
+        # Center the window
+        review_window.update_idletasks()
+        x = (review_window.winfo_screenwidth() // 2) - (800 // 2)
+        y = (review_window.winfo_screenheight() // 2) - (600 // 2)
+        review_window.geometry(f"800x600+{x}+{y}")
+        
+        # Result variable
+        user_decision = {'approved': False}
+        
+        # Header
+        header_frame = ttk.Frame(review_window, padding="10")
+        header_frame.pack(fill=tk.X)
+        
+        ttk.Label(header_frame, text="🔍 Gemini Prompt Review", 
+                 font=('Arial', 14, 'bold')).pack()
+        ttk.Label(header_frame, text="The agent wants to send the following prompt to Gemini. Review and approve/reject:", 
+                 font=('Arial', 10)).pack(pady=(5, 0))
+        
+        # Prompt details frame
+        details_frame = ttk.LabelFrame(review_window, text="Prompt Details", padding="10")
+        details_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        # Context information
+        context_frame = ttk.Frame(details_frame)
+        context_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(context_frame, text="Context:", font=('Arial', 10, 'bold')).grid(row=0, column=0, sticky=tk.W)
+        ttk.Label(context_frame, text=f"Cycle: {prompt_data.get('cycle', 'Unknown')}").grid(row=0, column=1, sticky=tk.W, padx=(10, 0))
+        ttk.Label(context_frame, text=f"Category: {prompt_data.get('semantic_category', 'Unknown')}").grid(row=0, column=2, sticky=tk.W, padx=(10, 0))
+        ttk.Label(context_frame, text=f"Intention: {prompt_data.get('intention', 'Unknown')[:50]}...").grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(5, 0))
+        
+        # Prompt text area
+        prompt_frame = ttk.Frame(details_frame)
+        prompt_frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(prompt_frame, text="Prompt to be sent:", font=('Arial', 10, 'bold')).pack(anchor=tk.W)
+        
+        prompt_text = tk.Text(prompt_frame, wrap=tk.WORD, font=('Consolas', 10), 
+                             height=15, bg='#f8f8f8', state=tk.DISABLED)
+        prompt_scrollbar = ttk.Scrollbar(prompt_frame, orient=tk.VERTICAL, command=prompt_text.yview)
+        prompt_text.configure(yscrollcommand=prompt_scrollbar.set)
+        
+        prompt_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        prompt_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Insert the prompt text
+        prompt_text.config(state=tk.NORMAL)
+        prompt_text.insert(tk.END, prompt_data.get('prompt_text', 'No prompt text available'))
+        prompt_text.config(state=tk.DISABLED)
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(review_window, padding="10")
+        buttons_frame.pack(fill=tk.X)
+        
+        def approve_prompt():
+            user_decision['approved'] = True
+            self._add_log_entry("SYSTEM", "INFO", f"🟢 User APPROVED Gemini prompt for cycle {prompt_data.get('cycle', 'Unknown')}")
+            review_window.destroy()
+        
+        def reject_prompt():
+            user_decision['approved'] = False
+            self._add_log_entry("SYSTEM", "WARNING", f"🔴 User REJECTED Gemini prompt for cycle {prompt_data.get('cycle', 'Unknown')}")
+            review_window.destroy()
+        
+        def view_full_context():
+            # Show additional context in a separate window
+            context_window = tk.Toplevel(review_window)
+            context_window.title("Full Context")
+            context_window.geometry("600x400")
+            
+            context_text = tk.Text(context_window, wrap=tk.WORD, font=('Consolas', 9))
+            context_scroll = ttk.Scrollbar(context_window, orient=tk.VERTICAL, command=context_text.yview)
+            context_text.configure(yscrollcommand=context_scroll.set)
+            
+            context_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            context_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            # Insert full context
+            context_info = f"""Cycle: {prompt_data.get('cycle', 'Unknown')}
+Semantic Category: {prompt_data.get('semantic_category', 'Unknown')}
+Intention: {prompt_data.get('intention', 'Unknown')}
+State Magnitude: {prompt_data.get('state_magnitude', 'Unknown')}
+Memory Context: {prompt_data.get('memory_context', 'Unknown')}
+Tool Candidates: {prompt_data.get('tool_candidates', [])}
+Priority: {prompt_data.get('priority', 'Unknown')}
+
+Additional Context:
+{prompt_data.get('additional_context', 'No additional context available')}
+"""
+            context_text.insert(tk.END, context_info)
+            context_text.config(state=tk.DISABLED)
+        
+        # Button layout
+        button_left_frame = ttk.Frame(buttons_frame)
+        button_left_frame.pack(side=tk.LEFT)
+        
+        ttk.Button(button_left_frame, text="📋 View Full Context", 
+                  command=view_full_context).pack(side=tk.LEFT, padx=(0, 10))
+        
+        button_right_frame = ttk.Frame(buttons_frame)
+        button_right_frame.pack(side=tk.RIGHT)
+        
+        ttk.Button(button_right_frame, text="🔴 Reject", 
+                  command=reject_prompt).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_right_frame, text="🟢 Approve", 
+                  command=approve_prompt).pack(side=tk.LEFT)
+        
+        # Handle window close
+        def on_closing():
+            user_decision['approved'] = False
+            self._add_log_entry("SYSTEM", "WARNING", f"🔴 User CLOSED prompt review dialog - treating as REJECTED")
+            review_window.destroy()
+        
+        review_window.protocol("WM_DELETE_WINDOW", on_closing)
+        
+        # Wait for user decision
+        review_window.wait_window()
+        
+        return user_decision['approved']
+    
+    def _setup_prompt_debugging(self):
+        """Setup prompt debugging integration."""
+        try:
+            from ..core.prompt_debugger import set_prompt_review_callback
+            # Register this log system as the prompt review handler
+            set_prompt_review_callback(self.show_prompt_review_dialog)
+        except ImportError:
+            # Fallback if prompt debugger is not available
+            pass
     
     def update_display(self):
         """Update display (called by dashboard monitoring loop)."""

@@ -66,7 +66,7 @@ class LogosConfig:
     planning_horizon: int = 5
     interest_threshold: float = 0.5
     gemini_api_key: str = field(default_factory=lambda: os.getenv('GEMINI_API_KEY', ''))
-    gemini_model: str = 'gemini-pro'
+    gemini_model: str = 'gemini-2.5-flash'  # Latest Gemini 2.5 Flash model (recommended for general use)
 
 
 @dataclass
