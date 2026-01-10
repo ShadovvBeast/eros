@@ -40,10 +40,32 @@ class LogosLayer(LogosLayerInterface):
         self.autonomous_goals: List[AutonomousGoal] = []
         self.intrinsic_motivation_enabled = False
         
+        # Initialize model provider (single provider, no fallbacks)
+        self.model_provider = None
+        self._initialize_model_providers()
+        
         # Initialize preference weights for semantic categories
         for category in self.semantic_categories:
             self.preference_weights[category] = 0.5  # Neutral starting point
             self.historical_patterns[category] = []
+    
+    def _initialize_model_providers(self):
+        """Initialize the selected model provider"""
+        try:
+            from .model_providers import ModelProviderFactory
+            
+            # Create the selected provider directly from LogosConfig
+            provider_type = self.config.model_provider
+            self.model_provider = ModelProviderFactory.create_provider(provider_type, self.config)
+            
+            if self.model_provider:
+                logger.info(f"Initialized model provider: {provider_type}")
+            else:
+                logger.error(f"Failed to create model provider: {provider_type}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize model provider: {e}")
+            self.model_provider = None
     
     def interpret_state(self, pathos_state: np.ndarray, memories: List[MemoryTrace]) -> SemanticVector:
         """
@@ -1409,17 +1431,17 @@ class LogosLayer(LogosLayerInterface):
                         pathos_state: np.ndarray = None, semantic_vector: SemanticVector = None, 
                         memories: List[MemoryTrace] = None) -> Optional[str]:
         """
-        Call Gemini API with prompt debugging support using the latest SDK (1.55.0).
+        Call model API with prompt debugging support.
         
         Args:
-            prompt: The prompt to send to Gemini
+            prompt: The prompt to send to the model
             context: Additional context for debugging
             pathos_state: Current pathos state for dynamic system instruction
             semantic_vector: Current semantic vector for dynamic system instruction
             memories: Current memories for dynamic system instruction
             
         Returns:
-            Response from Gemini API, or None if rejected/failed
+            Response from model API, or None if rejected/failed
         """
         # Import prompt debugger
         try:
@@ -1428,26 +1450,56 @@ class LogosLayer(LogosLayerInterface):
             # Prepare prompt data for debugging
             prompt_data = {
                 'prompt_text': prompt,
-                'service': 'gemini',
-                'model': self.config.gemini_model,
+                'service': f'model_provider_{self.config.model_provider}',
+                'model': getattr(self.config, f'{self.config.model_provider}_model', 'unknown'),
                 **(context or {})
             }
             
             # Check if prompt is approved (or debugging is disabled)
             if not intercept_gemini_prompt(prompt, prompt_data):
-                logger.error("Gemini prompt rejected by user during debugging - session should stop")
-                raise RuntimeError("Gemini prompt rejected by user - stopping session")
+                logger.error("Model prompt rejected by user during debugging - session should stop")
+                raise RuntimeError("Model prompt rejected by user - stopping session")
             
         except ImportError:
             # If prompt debugger is not available, proceed normally
             pass
         
-        # Gemini API implementation using latest SDK (1.55.0)
+        # Use configured model provider
         try:
-            from google import genai
-            from google.genai import types
+            if not self.model_provider:
+                logger.error("No model provider configured")
+                return None
             
-            # Configure API key
+            if not self.model_provider.is_available():
+                logger.error(f"Model provider {self.config.model_provider} is not available")
+                return None
+            
+            # Prepare context for model provider
+            model_context = {}
+            if context:
+                model_context.update(context)
+            
+            # Add dynamic system instruction if state information is available
+            if pathos_state is not None or semantic_vector is not None or memories:
+                system_instruction = self._create_dynamic_system_instruction(
+                    pathos_state, semantic_vector, memories
+                )
+                if system_instruction:
+                    model_context['system_instruction'] = system_instruction
+            
+            # Generate response using configured provider
+            response = self.model_provider.generate_response(prompt, model_context)
+            
+            if response:
+                logger.debug(f"Successfully generated response using {self.config.model_provider}")
+                return response
+            else:
+                logger.error(f"Model provider {self.config.model_provider} failed to generate response")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Model provider error: {e}")
+            return None
             if not self.config.gemini_api_key:
                 logger.error("Gemini API key not configured")
                 return None

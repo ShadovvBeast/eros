@@ -49,13 +49,11 @@ class SessionControlPanel:
     
     def __init__(self, parent, session_manager: SessionManager, 
                  session_config: SessionConfig,
-                 export_data_callback: Callable,
-                 open_config_callback: Callable):
+                 export_data_callback: Callable):
         """Initialize session control panel."""
         self.session_manager = session_manager
         self.session_config = session_config
         self.export_data_callback = export_data_callback
-        self.open_config_callback = open_config_callback
         
         self._create_controls(parent)
     
@@ -95,13 +93,6 @@ class SessionControlPanel:
             style="Danger.TButton"
         )
         self.emergency_button.pack(side=tk.LEFT, padx=(0, 10))
-        
-        # Configuration button
-        ttk.Button(
-            session_frame,
-            text="⚙️ Configure Agent",
-            command=self.open_config_dialog
-        ).pack(side=tk.LEFT)
         
         # Right side - Monitoring controls
         right_frame = ttk.Frame(control_frame)

@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "total_runtime": 20.168381,
+    "total_cycles": 2,
+    "successful_cycles": 2,
+    "average_cycle_time": 9.982276678085327
+  },
+  "detailed_metrics": [
+    {
+      "cycle": 1,
+      "duration": 9.127624273300171,
+      "timestamp": "2026-01-10T08:58:43.579978",
+      "success": true
+    },
+    {
+      "cycle": 2,
+      "duration": 10.836929082870483,
+      "timestamp": "2026-01-10T08:58:54.517303",
+      "success": true
+    }
+  ]
+}

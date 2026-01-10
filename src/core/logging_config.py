@@ -418,7 +418,7 @@ class InstrumentationCollector:
         if dir_path:
             os.makedirs(dir_path, exist_ok=True)
         
-        with open(filepath, 'w') as f:
+        with open(filepath, 'w', encoding='utf-8') as f:
             json.dump({
                 'summary': self.get_metrics_summary(),
                 'preference_drift_summary': self.get_preference_drift_summary(),

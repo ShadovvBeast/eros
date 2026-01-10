@@ -662,8 +662,8 @@ class SessionManager:
                 'hardware_summary': self.hardware_monitor.get_current_summary()
             }
             
-            with open(filepath, 'w') as f:
-                json.dump(data, f, indent=2, default=str)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, default=str, ensure_ascii=False)
             
             return True
             

@@ -861,7 +861,7 @@ Additional Context:
         try:
             # Export current log
             log_file = os.path.join(export_dir, "log_audit.txt")
-            with open(log_file, 'w') as f:
+            with open(log_file, 'w', encoding='utf-8') as f:
                 for entry in self.log_buffer:
                     timestamp_str = entry['timestamp'].strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
                     f.write(f"[{timestamp_str}] [{entry['component']}] [{entry['level']}] {entry['message']}")
@@ -871,8 +871,8 @@ Additional Context:
             
             # Export statistics
             stats_file = os.path.join(export_dir, "log_statistics.json")
-            with open(stats_file, 'w') as f:
-                json.dump(self.log_statistics, f, indent=2)
+            with open(stats_file, 'w', encoding='utf-8') as f:
+                json.dump(self.log_statistics, f, indent=2, ensure_ascii=False)
             
         except Exception as e:
             self._add_log_entry("SYSTEM", "ERROR", f"Data export failed: {str(e)}")

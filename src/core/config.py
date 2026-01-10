@@ -66,8 +66,33 @@ class LogosConfig:
     max_intentions_per_cycle: int = 3
     planning_horizon: int = 5
     interest_threshold: float = 0.5
+    
+    # Model provider selection (single provider, no fallbacks)
+    model_provider: str = 'gemini'  # 'gemini', 'ollama', 'openai_compatible'
+    
+    # Gemini configuration
     gemini_api_key: str = field(default_factory=lambda: os.getenv('GEMINI_API_KEY', ''))
     gemini_model: str = 'gemini-2.5-flash'  # Latest Gemini 2.5 Flash model (recommended for general use)
+    gemini_temperature: float = 0.7
+    gemini_top_p: float = 0.9
+    gemini_max_tokens: int = 2048
+    
+    # Ollama configuration
+    ollama_base_url: str = 'http://localhost:11434'
+    ollama_model: str = 'qwen2.5:7b'
+    ollama_temperature: float = 0.7
+    ollama_top_p: float = 0.9
+    ollama_max_tokens: int = 2048
+    ollama_timeout: int = 60
+    
+    # OpenAI-compatible configuration (vLLM, llama.cpp, etc.)
+    openai_compatible_base_url: str = 'http://localhost:8000'
+    openai_compatible_model: str = 'default'
+    openai_compatible_api_key: str = ''
+    openai_compatible_temperature: float = 0.7
+    openai_compatible_top_p: float = 0.9
+    openai_compatible_max_tokens: int = 2048
+    openai_compatible_timeout: int = 60
 
 
 @dataclass

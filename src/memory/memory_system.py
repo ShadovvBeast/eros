@@ -126,8 +126,8 @@ class ConcreteMemorySystem(MemorySystem):
         """Save traces to JSON file."""
         try:
             trace_dicts = [trace.to_dict() for trace in self.traces]
-            with open(self.config.storage_path, 'w') as f:
-                json.dump(trace_dicts, f, indent=2)
+            with open(self.config.storage_path, 'w', encoding='utf-8') as f:
+                json.dump(trace_dicts, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Failed to save memory traces: {e}")
     

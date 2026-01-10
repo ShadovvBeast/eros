@@ -94,7 +94,7 @@ from .log_system import LogAuditSystem
 from .tabs import (
     HealthTab, HardwareTab, PathosTab, MemoryTab, MemoryTableTab,
     PreferenceTab, AttractorTab, PerformanceTab,
-    ThreadManagementTab, LogAuditTab
+    ThreadManagementTab, LogAuditTab, ConfigTab
 )
 
 
@@ -172,8 +172,7 @@ class InteractiveDashboard:
             main_frame, 
             self.session_manager,
             self.session_config,
-            self._export_data,
-            self._open_agent_config
+            self._export_data
         )
         
         # Notebook for tabs
@@ -229,6 +228,7 @@ class InteractiveDashboard:
         self.tabs['attractor'] = AttractorTab(self.notebook, self.collector)
         self.tabs['performance'] = PerformanceTab(self.notebook, self.collector)
         self.tabs['threads'] = ThreadManagementTab(self.notebook, self.thread_manager)
+        self.tabs['config'] = ConfigTab(self.notebook, self.session_manager)
         
         # Log system is special - needs more integration
         self.log_system = LogAuditSystem(self.notebook, self.session_manager)
@@ -374,12 +374,6 @@ class InteractiveDashboard:
             messagebox.showinfo("Export Complete", f"Data exported to {export_dir}")
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to export data: {e}")
-    
-    def _open_agent_config(self):
-        """Open agent configuration dialog."""
-        # This will be implemented by the session controls
-        if self.session_controls:
-            self.session_controls.open_config_dialog()
     
     def _on_session_state_change(self, state):
         """Handle session state changes and automatically manage monitoring."""

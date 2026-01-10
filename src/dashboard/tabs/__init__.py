@@ -14,6 +14,7 @@ from .attractor_tab import AttractorTab
 from .performance_tab import PerformanceTab
 from .thread_tab import ThreadManagementTab
 from .log_tab import LogAuditTab
+from .config_tab import ConfigTab
 
 __all__ = [
     'HealthTab',
@@ -25,5 +26,6 @@ __all__ = [
     'AttractorTab',
     'PerformanceTab',
     'ThreadManagementTab',
-    'LogAuditTab'
+    'LogAuditTab',
+    'ConfigTab'
 ]

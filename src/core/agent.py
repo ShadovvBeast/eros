@@ -86,24 +86,34 @@ class AutonomousAgent:
             recent_memories = self.memory.get_recent_traces(self.config.pathos.memory_retrieval_k)
             semantic_vector = self.logos.interpret_state(self.pathos.current_state, recent_memories)
             
-            # Check if enhanced LLM-based intention generation should be used
-            # (when cycle logos debugging is enabled, use enhanced generation for demonstration)
+            # Always use enhanced LLM-based intention generation for dynamic, autonomous behavior
+            # This ensures the agent generates varied, creative intentions based on its current state
             import os
-            if os.getenv('CYCLE_LOGOS_DEBUGGING', 'false').lower() == 'true':
+            debug_mode = os.getenv('CYCLE_LOGOS_DEBUGGING', 'false').lower() == 'true'
+            
+            if debug_mode:
                 # Store current cycle for debugging context
                 if hasattr(self.logos, '_current_cycle'):
                     self.logos._current_cycle = self.cycle_count
                 else:
                     setattr(self.logos, '_current_cycle', self.cycle_count)
-                
-                # Use enhanced LLM-based intention generation
+            
+            # Try enhanced LLM-based intention generation first
+            try:
                 intention = self.logos.generate_enhanced_intention_with_llm(
                     semantic_vector, self.pathos.current_state, recent_memories
                 )
-                logger.debug("Using enhanced LLM-based intention generation due to debugging mode")
-            else:
-                # Use standard intention generation
+                
+                if debug_mode:
+                    logger.debug("Using enhanced LLM-based intention generation with debugging enabled")
+                else:
+                    logger.debug("Using enhanced LLM-based intention generation for autonomous operation")
+                    
+            except Exception as e:
+                # Fallback to standard intention generation if LLM fails
+                logger.warning(f"Enhanced intention generation failed ({e}), falling back to standard generation")
                 intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
+                logger.debug("Using standard intention generation as fallback")
             
             interest_signal = self.logos.compute_interest_signal(semantic_vector)
             phase_timings['logos'] = time.time() - phase_start
@@ -270,6 +280,7 @@ class AutonomousAgent:
             )
             
             if self.pathos.should_write_memory(salience):
+                # Create comprehensive memory trace with all agent cycle components
                 memory_trace = MemoryTrace(
                     affect_state=new_state.copy(),
                     semantic_vector=semantic_vector,
@@ -282,6 +293,13 @@ class AutonomousAgent:
                         'tool_used': tool_call.tool_name if tool_call else None
                     }
                 )
+                
+                # Add rich context fields for dashboard display
+                memory_trace.state = f"Pathos state: magnitude={np.linalg.norm(new_state):.3f}, complexity={self._compute_state_complexity(new_state):.3f}"
+                memory_trace.action = tool_call.tool_name if tool_call else "internal_processing"
+                memory_trace.observation = f"Tool result: {tool_result.success if tool_result else 'N/A'}, External reward: {external_reward:.3f}"
+                memory_trace.reflection = f"Internal reward: {internal_reward:.3f}, Salience: {salience:.3f}, Category: {semantic_vector.semantic_category}"
+                
                 self.memory.store_trace(memory_trace)
                 logger.debug(f"Cycle {self.cycle_count} - Memory stored", 
                             salience=salience,
@@ -350,6 +368,23 @@ class AutonomousAgent:
             self.instrumentation.record_error(type(e).__name__, str(e), 'agent_cycle')
             logger.error("Error in agent cycle", error=str(e), cycle=self.cycle_count)
             raise
+    
+    def _compute_state_complexity(self, state: np.ndarray) -> float:
+        """Compute complexity measure of the affective state."""
+        # Use entropy-like measure
+        abs_values = np.abs(state)
+        if np.sum(abs_values) == 0:
+            return 0.0
+        
+        # Normalize to probabilities
+        probs = abs_values / np.sum(abs_values)
+        
+        # Compute entropy
+        entropy = -np.sum(probs * np.log(probs + 1e-8))
+        
+        # Normalize by maximum possible entropy
+        max_entropy = np.log(len(state))
+        return entropy / max_entropy if max_entropy > 0 else 0.0
     
     def run_autonomous(self, max_cycles: Optional[int] = None) -> None:
         """

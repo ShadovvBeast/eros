@@ -92,8 +92,8 @@ def save_mcp_config(servers: List[MCPServerConfig], config_path: str) -> bool:
         os.makedirs(os.path.dirname(config_path), exist_ok=True)
         
         # Write configuration
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=2)
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
         
         return True
         

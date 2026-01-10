@@ -1,0 +1,31 @@
+{
+  "summary": {
+    "total_runtime": 6.68776,
+    "total_cycles": 3,
+    "successful_cycles": 0,
+    "average_cycle_time": 2.128381888071696
+  },
+  "detailed_metrics": [
+    {
+      "cycle": 1,
+      "duration": 3.0005276203155518,
+      "timestamp": "2026-01-10T09:04:49.924319",
+      "success": false,
+      "error": "Gemini prompt was rejected or failed - stopping session as requested"
+    },
+    {
+      "cycle": 1,
+      "duration": 1.7029125690460205,
+      "timestamp": "2026-01-10T09:04:51.727445",
+      "success": false,
+      "error": "Gemini prompt was rejected or failed - stopping session as requested"
+    },
+    {
+      "cycle": 1,
+      "duration": 1.6817054748535156,
+      "timestamp": "2026-01-10T09:04:53.509354",
+      "success": false,
+      "error": "Gemini prompt was rejected or failed - stopping session as requested"
+    }
+  ]
+}
