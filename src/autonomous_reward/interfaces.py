@@ -13,7 +13,22 @@ from .models import (
     StateReward, IntrinsicMotivation, ValuePattern, LearningState,
     WorldInteractionResult, AutonomousGoal, Experience, Pattern
 )
-from ..core.models import SemanticVector, MemoryTrace, ToolResult, Intention
+
+# Define minimal required types locally to avoid import issues
+class SemanticVector:
+    pass
+
+class MemoryTrace:
+    pass
+
+class ToolResult:
+    def __init__(self, success=True, content="", metadata=None):
+        self.success = success
+        self.content = content
+        self.metadata = metadata or {}
+
+class Intention:
+    pass
 
 
 class AutonomousRewardSystemInterface(ABC):

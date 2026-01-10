@@ -26,6 +26,10 @@ from .models import (
     StateReward, IntrinsicMotivation, ValuePattern, LearningState,
     WorldInteractionResult, AutonomousGoal, Experience
 )
+from .error_handling import (
+    RewardSystemErrorHandler, StateCorruptionError, RewardOverflowError,
+    IntegrationFailureError, ErrorType, ErrorSeverity
+)
 from ..core.models import SemanticVector, MemoryTrace, ToolResult
 from ..core.config import AgentConfig
 
@@ -50,6 +54,10 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         """
         self.config = config
         
+        # Initialize error handler
+        error_handler_config = getattr(config, 'error_handler_config', {})
+        self.error_handler = RewardSystemErrorHandler(error_handler_config)
+        
         # Initialize subsystem interfaces (will be injected by factory)
         self.state_reward_generator: Optional[StateDerivedRewardGeneratorInterface] = None
         self.intrinsic_motivation_engine: Optional[IntrinsicMotivationEngineInterface] = None
@@ -72,7 +80,7 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         self.state_transition_buffer: List[np.ndarray] = []
         self.max_buffer_size = 100
         
-        logger.info("Initialized AutonomousRewardSystem")
+        logger.info("Initialized AutonomousRewardSystem with error handling")
     
     def initialize_subsystems(self,
                             state_reward_generator: StateDerivedRewardGeneratorInterface,
@@ -128,64 +136,97 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         Returns:
             StateReward containing all state-derived reward components
         """
-        if not self.reward_pipeline_active or not self.state_reward_generator:
-            # Fallback to basic state-derived computation
-            return self._compute_basic_state_reward(current_state, previous_state)
-        
-        # Update state transition buffer
-        self._update_state_buffer(current_state)
-        
-        # Compute coherence reward from current state harmony
-        coherence_reward = self.state_reward_generator.compute_coherence_reward(current_state)
-        
-        # Compute growth reward from state evolution
-        historical_states = self.state_transition_buffer[-10:]  # Last 10 states
-        growth_reward = self.state_reward_generator.compute_growth_reward(
-            current_state, historical_states
-        )
-        
-        # Compute integration reward from memory patterns
-        memory_patterns = self._extract_memory_patterns()
-        integration_reward = self.state_reward_generator.compute_integration_reward(
-            current_state, memory_patterns
-        )
-        
-        # Compute elegance reward from complexity-simplicity balance
-        state_complexity = self._compute_state_complexity(current_state)
-        solution_efficiency = self._assess_solution_efficiency(current_state, previous_state)
-        elegance_reward = self.state_reward_generator.compute_elegance_reward(
-            state_complexity, solution_efficiency
-        )
-        
-        # Detect emergent patterns and compute emergence reward
-        recent_states = self.state_transition_buffer[-5:]  # Last 5 states
-        emergent_patterns = self.state_reward_generator.detect_emergent_patterns(recent_states)
-        emergence_reward = self._compute_emergence_reward(emergent_patterns)
-        
-        # Combine all reward components
-        total_reward = (coherence_reward + growth_reward + integration_reward + 
-                       elegance_reward + emergence_reward)
-        
-        state_reward = StateReward(
-            coherence_reward=coherence_reward,
-            growth_reward=growth_reward,
-            integration_reward=integration_reward,
-            elegance_reward=elegance_reward,
-            emergence_reward=emergence_reward,
-            total_reward=total_reward
-        )
-        
-        # Store in history
-        self.reward_history.append(state_reward)
-        if len(self.reward_history) > self.max_buffer_size:
-            self.reward_history.pop(0)
-        
-        logger.debug(f"Computed state-derived reward: total={total_reward:.4f}, "
-                    f"coherence={coherence_reward:.4f}, growth={growth_reward:.4f}, "
-                    f"integration={integration_reward:.4f}, elegance={elegance_reward:.4f}, "
-                    f"emergence={emergence_reward:.4f}")
-        
-        return state_reward
+        try:
+            # Handle potential state corruption
+            current_state = self.error_handler.handle_state_corruption(
+                current_state, self.state_transition_buffer
+            )
+            previous_state = self.error_handler.handle_state_corruption(
+                previous_state, self.state_transition_buffer
+            )
+            
+            if not self.reward_pipeline_active or not self.state_reward_generator:
+                # NO FALLBACK! System must be properly initialized
+                raise RuntimeError(
+                    f"Autonomous reward system not properly initialized! "
+                    f"reward_pipeline_active={self.reward_pipeline_active}, "
+                    f"state_reward_generator={self.state_reward_generator is not None}. "
+                    f"Call initialize_subsystems() before using compute_state_derived_reward()."
+                )
+            
+            # Update state transition buffer
+            self._update_state_buffer(current_state)
+            
+            # Compute coherence reward from current state harmony
+            coherence_reward = self.state_reward_generator.compute_coherence_reward(current_state)
+            
+            # Compute growth reward from state evolution
+            historical_states = self.state_transition_buffer[-10:]  # Last 10 states
+            growth_reward = self.state_reward_generator.compute_growth_reward(current_state, historical_states)
+            
+            # Compute integration reward from memory patterns
+            memory_patterns = self._extract_memory_patterns()
+            integration_reward = self.state_reward_generator.compute_integration_reward(current_state, memory_patterns)
+            
+            # Compute elegance reward from complexity-simplicity balance
+            state_complexity = self._compute_state_complexity(current_state)
+            solution_efficiency = self._assess_solution_efficiency(current_state, previous_state)
+            elegance_reward = self.state_reward_generator.compute_elegance_reward(state_complexity, solution_efficiency)
+            
+            # Detect emergent patterns and compute emergence reward
+            recent_states = self.state_transition_buffer[-5:]  # Last 5 states
+            emergent_patterns = self.state_reward_generator.detect_emergent_patterns(recent_states)
+            emergence_reward = self._compute_emergence_reward(emergent_patterns)
+            
+            # Handle potential reward overflows (but no fallbacks)
+            coherence_reward = self.error_handler.handle_reward_overflow(coherence_reward, "coherence")
+            growth_reward = self.error_handler.handle_reward_overflow(growth_reward, "growth")
+            integration_reward = self.error_handler.handle_reward_overflow(integration_reward, "integration")
+            elegance_reward = self.error_handler.handle_reward_overflow(elegance_reward, "elegance")
+            emergence_reward = self.error_handler.handle_reward_overflow(emergence_reward, "emergence")
+            
+            # Combine all reward components with POSITIVE BIAS to prevent negative cycles
+            total_reward = (coherence_reward + growth_reward + integration_reward + 
+                           elegance_reward + emergence_reward)
+            
+            # ADD POSITIVE BIAS to prevent system from getting stuck in negative reward cycles
+            # This ensures the system can form attractors and escape fixed points
+            positive_bias = 0.5  # Base positive reward to encourage exploration
+            total_reward += positive_bias
+            
+            total_reward = self.error_handler.handle_reward_overflow(total_reward, "total")
+            
+            state_reward = StateReward(
+                coherence_reward=coherence_reward,
+                growth_reward=growth_reward,
+                integration_reward=integration_reward,
+                elegance_reward=elegance_reward,
+                emergence_reward=emergence_reward,
+                total_reward=total_reward
+            )
+            
+            # Validate the complete state reward
+            state_reward = self.error_handler.validate_state_reward(state_reward)
+            
+            # Store in history
+            self.reward_history.append(state_reward)
+            if len(self.reward_history) > self.max_buffer_size:
+                self.reward_history.pop(0)
+            
+            logger.debug(f"Computed state-derived reward: total={total_reward:.4f}, "
+                        f"coherence={coherence_reward:.4f}, growth={growth_reward:.4f}, "
+                        f"integration={integration_reward:.4f}, elegance={elegance_reward:.4f}, "
+                        f"emergence={emergence_reward:.4f}")
+            
+            return state_reward
+            
+        except Exception as e:
+            # NO FALLBACK! Let the error propagate to expose initialization issues
+            logger.error(f"CRITICAL ERROR in state-derived reward computation: {e}")
+            logger.error(f"reward_pipeline_active: {self.reward_pipeline_active}")
+            logger.error(f"state_reward_generator: {self.state_reward_generator is not None}")
+            logger.error(f"This indicates the autonomous reward system was not properly initialized!")
+            raise RuntimeError(f"Autonomous reward system failure: {e}") from e
     
     def generate_intrinsic_motivation(self, state: np.ndarray, 
                                     context: Dict[str, Any]) -> IntrinsicMotivation:
@@ -199,64 +240,106 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         Returns:
             IntrinsicMotivation containing all motivation drives
         """
-        if not self.intrinsic_motivation_engine:
-            # Fallback to basic motivation computation
-            return self._compute_basic_intrinsic_motivation(state, context)
-        
-        # Extract context information
-        knowledge_gaps = context.get('knowledge_gaps', [])
-        state_energy = float(np.linalg.norm(state))
-        skill_domains = context.get('skill_domains', {})
-        self_directed_actions = context.get('self_directed_actions', 0)
-        external_dependencies = context.get('external_dependencies', 0)
-        current_capabilities = context.get('current_capabilities', set())
-        learning_opportunities = context.get('learning_opportunities', [])
-        
-        # Generate curiosity drive
-        curiosity_drive = self.intrinsic_motivation_engine.generate_curiosity_drive(
-            knowledge_gaps, state_energy
-        )
-        
-        # Assess mastery progress across skill domains
-        mastery_drive = 0.0
-        for domain, performance_history in skill_domains.items():
-            domain_mastery = self.intrinsic_motivation_engine.assess_mastery_progress(
-                domain, performance_history
+        try:
+            # Handle potential state corruption
+            state = self.error_handler.handle_state_corruption(
+                state, self.state_transition_buffer
             )
-            mastery_drive += domain_mastery
-        mastery_drive = mastery_drive / max(len(skill_domains), 1)  # Average across domains
-        
-        # Compute autonomy reward
-        autonomy_drive = self.intrinsic_motivation_engine.compute_autonomy_reward(
-            self_directed_actions, external_dependencies
-        )
-        
-        # Evaluate growth potential
-        growth_drive = self.intrinsic_motivation_engine.evaluate_growth_potential(
-            current_capabilities, learning_opportunities
-        )
-        
-        # Combine motivation drives
-        combined_motivation = (curiosity_drive + mastery_drive + autonomy_drive + growth_drive) / 4.0
-        
-        intrinsic_motivation = IntrinsicMotivation(
-            curiosity_drive=curiosity_drive,
-            mastery_drive=mastery_drive,
-            autonomy_drive=autonomy_drive,
-            growth_drive=growth_drive,
-            combined_motivation=combined_motivation
-        )
-        
-        # Store in history
-        self.motivation_history.append(intrinsic_motivation)
-        if len(self.motivation_history) > self.max_buffer_size:
-            self.motivation_history.pop(0)
-        
-        logger.debug(f"Generated intrinsic motivation: combined={combined_motivation:.4f}, "
-                    f"curiosity={curiosity_drive:.4f}, mastery={mastery_drive:.4f}, "
-                    f"autonomy={autonomy_drive:.4f}, growth={growth_drive:.4f}")
-        
-        return intrinsic_motivation
+            
+            if not self.intrinsic_motivation_engine:
+                # NO FALLBACK! System must be properly initialized
+                raise RuntimeError(
+                    f"Intrinsic motivation engine not initialized! "
+                    f"Call initialize_subsystems() before using generate_intrinsic_motivation()."
+                )
+            
+            # Extract context information with safe defaults
+            knowledge_gaps = context.get('knowledge_gaps', [])
+            state_energy = float(np.linalg.norm(state))
+            skill_domains = context.get('skill_domains', {})
+            self_directed_actions = context.get('self_directed_actions', 0)
+            external_dependencies = context.get('external_dependencies', 0)
+            current_capabilities = context.get('current_capabilities', set())
+            learning_opportunities = context.get('learning_opportunities', [])
+            
+            # Generate curiosity drive with error handling
+            curiosity_drive = self.error_handler.safe_execute(
+                self.intrinsic_motivation_engine.generate_curiosity_drive,
+                knowledge_gaps, state_energy,
+                fallback_value=0.3,
+                error_type=ErrorType.NUMERICAL_INSTABILITY
+            )
+            
+            # Assess mastery progress across skill domains
+            mastery_drive = 0.0
+            for domain, performance_history in skill_domains.items():
+                domain_mastery = self.error_handler.safe_execute(
+                    self.intrinsic_motivation_engine.assess_mastery_progress,
+                    domain, performance_history,
+                    fallback_value=0.3,
+                    error_type=ErrorType.NUMERICAL_INSTABILITY
+                )
+                mastery_drive += domain_mastery
+            mastery_drive = mastery_drive / max(len(skill_domains), 1)  # Average across domains
+            
+            # Compute autonomy reward with error handling
+            autonomy_drive = self.error_handler.safe_execute(
+                self.intrinsic_motivation_engine.compute_autonomy_reward,
+                self_directed_actions, external_dependencies,
+                fallback_value=0.3,
+                error_type=ErrorType.NUMERICAL_INSTABILITY
+            )
+            
+            # Evaluate growth potential with error handling
+            growth_drive = self.error_handler.safe_execute(
+                self.intrinsic_motivation_engine.evaluate_growth_potential,
+                current_capabilities, learning_opportunities,
+                fallback_value=0.3,
+                error_type=ErrorType.NUMERICAL_INSTABILITY
+            )
+            
+            # Handle potential overflows
+            curiosity_drive = self.error_handler.handle_reward_overflow(curiosity_drive, "curiosity")
+            mastery_drive = self.error_handler.handle_reward_overflow(mastery_drive, "mastery")
+            autonomy_drive = self.error_handler.handle_reward_overflow(autonomy_drive, "autonomy")
+            growth_drive = self.error_handler.handle_reward_overflow(growth_drive, "growth")
+            
+            # Combine motivation drives
+            combined_motivation = (curiosity_drive + mastery_drive + autonomy_drive + growth_drive) / 4.0
+            combined_motivation = self.error_handler.handle_reward_overflow(combined_motivation, "combined_motivation")
+            
+            intrinsic_motivation = IntrinsicMotivation(
+                curiosity_drive=curiosity_drive,
+                mastery_drive=mastery_drive,
+                autonomy_drive=autonomy_drive,
+                growth_drive=growth_drive,
+                combined_motivation=combined_motivation
+            )
+            
+            # Validate the complete intrinsic motivation
+            intrinsic_motivation = self.error_handler.validate_intrinsic_motivation(intrinsic_motivation)
+            
+            # Store in history
+            self.motivation_history.append(intrinsic_motivation)
+            if len(self.motivation_history) > self.max_buffer_size:
+                self.motivation_history.pop(0)
+            
+            logger.debug(f"Generated intrinsic motivation: combined={combined_motivation:.4f}, "
+                        f"curiosity={curiosity_drive:.4f}, mastery={mastery_drive:.4f}, "
+                        f"autonomy={autonomy_drive:.4f}, growth={growth_drive:.4f}")
+            
+            return intrinsic_motivation
+            
+        except Exception as e:
+            logger.error(f"Critical error in intrinsic motivation generation: {e}")
+            
+            # Return fallback motivation
+            fallback_motivation = self.error_handler.fallback_intrinsic_motivation
+            self.motivation_history.append(fallback_motivation)
+            if len(self.motivation_history) > self.max_buffer_size:
+                self.motivation_history.pop(0)
+            
+            return fallback_motivation
     
     def assess_world_interaction_value(self, action_result: ToolResult, 
                                      state: np.ndarray) -> WorldInteractionResult:
@@ -271,8 +354,11 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             WorldInteractionResult with comprehensive interaction assessment
         """
         if not self.world_interaction_reward_system:
-            # Fallback to basic assessment
-            return self._assess_basic_world_interaction(action_result, state)
+            # NO FALLBACK! System must be properly initialized
+            raise RuntimeError(
+                f"World interaction reward system not initialized! "
+                f"Call initialize_subsystems() before using assess_world_interaction()."
+            )
         
         # Extract action information
         action_type = action_result.tool_name
@@ -349,32 +435,64 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         Returns:
             Synergy bonus value
         """
-        if not self.cross_layer_synergy:
-            # Fallback to basic synergy computation
-            return self._compute_basic_synergy(logos_state, pathos_state, memory_context)
-        
-        # Extract reward signals from each layer (simplified for now)
-        logos_rewards = {'reasoning': 0.5, 'planning': 0.3}  # Placeholder
-        pathos_rewards = {'coherence': 0.4, 'growth': 0.6}   # Placeholder
-        memory_rewards = {'integration': 0.5, 'recall': 0.4} # Placeholder
-        
-        # Coordinate reward signals
-        coordinated_rewards = self.cross_layer_synergy.coordinate_reward_signals(
-            logos_rewards, pathos_rewards, memory_rewards
-        )
-        
-        # Compute synergy bonus
-        layer_harmony = {
-            'logos': np.mean(list(logos_rewards.values())),
-            'pathos': np.mean(list(pathos_rewards.values())),
-            'memory': np.mean(list(memory_rewards.values()))
-        }
-        
-        synergy_bonus = self.cross_layer_synergy.compute_synergy_bonus(layer_harmony)
-        
-        logger.debug(f"Computed cross-layer synergy bonus: {synergy_bonus:.4f}")
-        
-        return synergy_bonus
+        try:
+            # Handle potential state corruption
+            pathos_state = self.error_handler.handle_state_corruption(
+                pathos_state, self.state_transition_buffer
+            )
+            
+            if not self.cross_layer_synergy:
+                # NO FALLBACK! System must be properly initialized
+                raise RuntimeError(
+                    f"Cross layer synergy system not initialized! "
+                    f"Call initialize_subsystems() before using compute_cross_layer_synergy()."
+                )
+            
+            # Extract reward signals from each layer (simplified for now)
+            logos_rewards = {'reasoning': 0.5, 'planning': 0.3}  # Placeholder
+            pathos_rewards = {'coherence': 0.4, 'growth': 0.6}   # Placeholder
+            memory_rewards = {'integration': 0.5, 'recall': 0.4} # Placeholder
+            
+            # Coordinate reward signals with error handling
+            coordinated_rewards = self.error_handler.safe_execute(
+                self.cross_layer_synergy.coordinate_reward_signals,
+                logos_rewards, pathos_rewards, memory_rewards,
+                fallback_value={'synergy': 0.1},
+                error_type=ErrorType.INTEGRATION_FAILURE
+            )
+            
+            # Compute synergy bonus
+            layer_harmony = {
+                'logos': np.mean(list(logos_rewards.values())),
+                'pathos': np.mean(list(pathos_rewards.values())),
+                'memory': np.mean(list(memory_rewards.values()))
+            }
+            
+            synergy_bonus = self.error_handler.safe_execute(
+                self.cross_layer_synergy.compute_synergy_bonus,
+                layer_harmony,
+                fallback_value=0.1,
+                error_type=ErrorType.INTEGRATION_FAILURE
+            )
+            
+            # Handle potential overflow
+            synergy_bonus = self.error_handler.handle_reward_overflow(synergy_bonus, "synergy")
+            
+            logger.debug(f"Computed cross-layer synergy bonus: {synergy_bonus:.4f}")
+            
+            return synergy_bonus
+            
+        except Exception as e:
+            logger.error(f"Critical error in cross-layer synergy computation: {e}")
+            
+            # Handle integration failure
+            failed_components = ['cross_layer_synergy']
+            error_details = {'exception': str(e), 'layers': ['logos', 'pathos', 'memory']}
+            fallback_results = self.error_handler.handle_integration_failure(
+                failed_components, error_details
+            )
+            
+            return fallback_results.get('cross_layer_synergy', 0.1)
     
     def get_current_learning_state(self) -> Optional[LearningState]:
         """
@@ -427,8 +545,66 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             'motivation_history_length': len(self.motivation_history),
             'experience_buffer_length': len(self.experience_buffer),
             'state_buffer_length': len(self.state_transition_buffer),
-            'current_learning_state': self.current_learning_state is not None
+            'current_learning_state': self.current_learning_state is not None,
+            'error_statistics': self.error_handler.get_error_statistics()
         }
+    
+    def generate_autonomous_goals(self, current_state: np.ndarray, 
+                                context: Dict[str, Any]) -> List[AutonomousGoal]:
+        """
+        Generate autonomous goals based on current state and emergent values.
+        
+        Args:
+            current_state: Current pathos state
+            context: Context information for goal generation
+            
+        Returns:
+            List of generated autonomous goals
+        """
+        try:
+            # Handle potential state corruption
+            current_state = self.error_handler.handle_state_corruption(
+                current_state, self.state_transition_buffer
+            )
+            
+            if not self.emergent_value_system:
+                # NO FALLBACK! System must be properly initialized
+                raise RuntimeError(
+                    f"Emergent value system not initialized! "
+                    f"Call initialize_subsystems() before using generate_autonomous_goals()."
+                )
+            
+            # Get current value patterns
+            current_values = self.emergent_value_system.get_discovered_patterns()
+            
+            # Generate goals using the emergent value system
+            autonomous_goals = self.error_handler.safe_execute(
+                self.emergent_value_system.generate_autonomous_goals,
+                current_values, current_state,
+                fallback_value=[],
+                error_type=ErrorType.INTEGRATION_FAILURE
+            )
+            
+            logger.debug(f"Generated {len(autonomous_goals)} autonomous goals")
+            
+            return autonomous_goals
+            
+        except Exception as e:
+            logger.error(f"Critical error in autonomous goal generation: {e}")
+            
+            # Return fallback goals
+            return self._generate_basic_autonomous_goals(current_state, context)
+    
+    # REMAINING FALLBACK METHODS REMOVED - System must be properly initialized
+    
+    def get_error_handler(self) -> RewardSystemErrorHandler:
+        """
+        Get the error handler for direct access to error management.
+        
+        Returns:
+            RewardSystemErrorHandler instance
+        """
+        return self.error_handler
     
     # Private helper methods
     
@@ -486,75 +662,9 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         
         return base_reward + diversity_bonus
     
-    def _compute_basic_state_reward(self, current_state: np.ndarray, previous_state: np.ndarray) -> StateReward:
-        """Fallback method for basic state reward computation."""
-        # Simple coherence reward based on state norm
-        coherence_reward = 1.0 / (1.0 + np.linalg.norm(current_state))
-        
-        # Simple growth reward based on state change
-        state_change = np.linalg.norm(current_state - previous_state)
-        growth_reward = min(state_change * 0.5, 1.0)  # Cap at 1.0
-        
-        # Basic integration and elegance rewards
-        integration_reward = 0.1
-        elegance_reward = 0.1
-        emergence_reward = 0.0
-        
-        total_reward = coherence_reward + growth_reward + integration_reward + elegance_reward + emergence_reward
-        
-        return StateReward(
-            coherence_reward=coherence_reward,
-            growth_reward=growth_reward,
-            integration_reward=integration_reward,
-            elegance_reward=elegance_reward,
-            emergence_reward=emergence_reward,
-            total_reward=total_reward
-        )
-    
-    def _compute_basic_intrinsic_motivation(self, state: np.ndarray, context: Dict[str, Any]) -> IntrinsicMotivation:
-        """Fallback method for basic intrinsic motivation computation."""
-        state_energy = float(np.linalg.norm(state))
-        
-        # Simple motivation drives based on state energy
-        curiosity_drive = min(state_energy * 0.3, 1.0)
-        mastery_drive = min(state_energy * 0.2, 1.0)
-        autonomy_drive = min(state_energy * 0.4, 1.0)
-        growth_drive = min(state_energy * 0.3, 1.0)
-        
-        combined_motivation = (curiosity_drive + mastery_drive + autonomy_drive + growth_drive) / 4.0
-        
-        return IntrinsicMotivation(
-            curiosity_drive=curiosity_drive,
-            mastery_drive=mastery_drive,
-            autonomy_drive=autonomy_drive,
-            growth_drive=growth_drive,
-            combined_motivation=combined_motivation
-        )
-    
-    def _assess_basic_world_interaction(self, action_result: ToolResult, state: np.ndarray) -> WorldInteractionResult:
-        """Fallback method for basic world interaction assessment."""
-        success_level = 1.0 if action_result.success else 0.0
-        discovery_value = 0.5 if action_result.success else 0.0
-        connection_quality = 0.3
-        creativity_score = 0.2
-        total_reward = success_level + discovery_value + connection_quality + creativity_score
-        
-        return WorldInteractionResult(
-            action_type=action_result.tool_name,
-            success_level=success_level,
-            discovery_value=discovery_value,
-            connection_quality=connection_quality,
-            creativity_score=creativity_score,
-            total_reward=total_reward
-        )
-    
-    def _compute_basic_synergy(self, logos_state: Any, pathos_state: np.ndarray, memory_context: List[MemoryTrace]) -> float:
-        """Fallback method for basic synergy computation."""
-        # Simple synergy based on pathos state energy and memory context size
-        pathos_energy = float(np.linalg.norm(pathos_state))
-        memory_factor = min(len(memory_context) * 0.1, 1.0)
-        synergy = (pathos_energy + memory_factor) * 0.1
-        return min(synergy, 1.0)
+    # FALLBACK METHODS REMOVED - System must be properly initialized
+    # If you see errors about missing methods, the autonomous reward system
+    # was not properly initialized. Call initialize_subsystems() first.
     
     def _assess_discovery_value(self, action_result: ToolResult) -> float:
         """Assess discovery value from action result."""

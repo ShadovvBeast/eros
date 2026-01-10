@@ -299,6 +299,10 @@ class ConcreteMemorySystem(MemorySystem):
         
         logger.info("Cleared all memory traces")
     
+    def clear_all_traces(self) -> None:
+        """Clear all stored memory traces (alias for clear_memories for UI compatibility)"""
+        self.clear_memories()
+    
     def get_memory_echoes(self, affect_state: np.ndarray, k: int = 5) -> Tuple[np.ndarray, List[float]]:
         """
         Get memory echoes for Pathos layer integration.

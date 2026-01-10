@@ -20,6 +20,19 @@ from .interfaces import (
 )
 
 from .core import AutonomousRewardSystem
+from .state_reward_generator import StateDerivedRewardGenerator
+from .intrinsic_motivation_engine import IntrinsicMotivationEngine
+from .progressive_learning_controller import ProgressiveLearningController
+from .world_interaction_reward_system import WorldInteractionRewardSystem
+from .emergent_value_system import EmergentValueSystem
+from .self_success_metrics_system import SelfSuccessMetricsSystem
+from .cross_layer_synergy import CrossLayerSynergy
+from .adaptive_complexity_management import AdaptiveComplexityManagement
+from .factory import (
+    AutonomousRewardSystemFactory,
+    create_autonomous_reward_system,
+    create_autonomous_reward_system_with_factory
+)
 from .models import (
     StateReward,
     IntrinsicMotivation,
@@ -44,6 +57,19 @@ __all__ = [
     
     # Core implementation
     'AutonomousRewardSystem',
+    'StateDerivedRewardGenerator',
+    'IntrinsicMotivationEngine',
+    'ProgressiveLearningController',
+    'WorldInteractionRewardSystem',
+    'EmergentValueSystem',
+    'SelfSuccessMetricsSystem',
+    'CrossLayerSynergy',
+    'AdaptiveComplexityManagement',
+    
+    # Factory and creation utilities
+    'AutonomousRewardSystemFactory',
+    'create_autonomous_reward_system',
+    'create_autonomous_reward_system_with_factory',
     
     # Data models
     'StateReward',

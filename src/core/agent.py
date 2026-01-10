@@ -2,7 +2,7 @@
 Main Agent class that coordinates all layers of the Autonomous Logos-Pathos-Memory Agent.
 """
 
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import time
 from datetime import datetime
 import numpy as np
@@ -14,6 +14,8 @@ from ..pathos.interfaces import PathosLayer
 from ..memory.interfaces import MemorySystem
 from ..ethos.interfaces import EthosFramework
 from ..tools.interfaces import ToolLayer
+from ..autonomous_reward.interfaces import AutonomousRewardSystemInterface
+from ..autonomous_reward.models import Experience
 from .logging_config import logger, instrumentation as default_instrumentation
 from .math_utils import cosine_similarity
 
@@ -37,16 +39,21 @@ class AutonomousAgent:
         self.ethos: Optional[EthosFramework] = None
         self.tools: Optional[ToolLayer] = None
         
+        # Initialize autonomous reward system
+        self.autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None
+        
         logger.info("Agent initialized")
     
     def initialize_layers(self, logos: LogosLayer, pathos: PathosLayer, 
-                         memory: MemorySystem, ethos: EthosFramework, tools: ToolLayer):
+                         memory: MemorySystem, ethos: EthosFramework, tools: ToolLayer,
+                         autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None):
         """Initialize all agent layers"""
         self.logos = logos
         self.pathos = pathos
         self.memory = memory
         self.ethos = ethos
         self.tools = tools
+        self.autonomous_reward_system = autonomous_reward_system
         
         # Register tool result callbacks for layer integration
         self.tools.register_result_callback(self._handle_tool_result)
@@ -158,7 +165,7 @@ class AutonomousAgent:
                             decision="INTERNAL_PROCESSING_SUFFICIENT")
             phase_timings['tools'] = time.time() - phase_start
             
-            # Phase 4: Pathos state update
+            # Phase 4: Pathos state update with autonomous rewards
             phase_start = time.time()
             retrieved_memories = self.memory.query_by_affect(
                 self.pathos.current_state, self.config.pathos.memory_retrieval_k
@@ -168,13 +175,78 @@ class AutonomousAgent:
                 semantic_vector, external_reward, interest_signal, retrieved_memories
             )
             
-            internal_reward = self.pathos.compute_internal_reward(
-                new_state, self.pathos.current_state
-            )
+            # Compute autonomous state-derived rewards
+            if self.autonomous_reward_system:
+                # Use autonomous reward system for all reward computation
+                state_reward = self.autonomous_reward_system.compute_state_derived_reward(
+                    new_state, self.pathos.current_state
+                )
+                internal_reward = state_reward.total_reward
+                
+                # Generate intrinsic motivation
+                motivation_context = {
+                    'knowledge_gaps': self._identify_knowledge_gaps(),
+                    'skill_domains': self._extract_skill_domains(),
+                    'self_directed_actions': 1 if not tool_call else 0,
+                    'external_dependencies': 1 if tool_call else 0,
+                    'current_capabilities': self._assess_current_capabilities(),
+                    'learning_opportunities': self._identify_learning_opportunities()
+                }
+                intrinsic_motivation = self.autonomous_reward_system.generate_intrinsic_motivation(
+                    new_state, motivation_context
+                )
+                
+                # Assess world interaction value if tool was used
+                if tool_result:
+                    world_interaction_result = self.autonomous_reward_system.assess_world_interaction_value(
+                        tool_result, new_state
+                    )
+                    # Incorporate world interaction reward
+                    external_reward += world_interaction_result.total_reward
+                
+                # Update emergent values with experience
+                experience = Experience(
+                    state_before=self.pathos.current_state.copy(),
+                    state_after=new_state.copy(),
+                    action_taken=tool_call.tool_name if tool_call else 'internal_processing',
+                    reward_received=internal_reward + external_reward,
+                    semantic_context=semantic_vector.semantic_category,
+                    timestamp=datetime.now()
+                )
+                self.autonomous_reward_system.update_emergent_values(experience, internal_reward + external_reward)
+                
+                # Compute cross-layer synergy
+                synergy_bonus = self.autonomous_reward_system.compute_cross_layer_synergy(
+                    self.logos, new_state, retrieved_memories
+                )
+                internal_reward += synergy_bonus
+                
+                logger.debug(f"Cycle {self.cycle_count} - Autonomous rewards", 
+                            state_reward_total=state_reward.total_reward,
+                            coherence=state_reward.coherence_reward,
+                            growth=state_reward.growth_reward,
+                            integration=state_reward.integration_reward,
+                            elegance=state_reward.elegance_reward,
+                            emergence=state_reward.emergence_reward,
+                            intrinsic_motivation=intrinsic_motivation.combined_motivation,
+                            synergy_bonus=synergy_bonus)
+            else:
+                # Fallback to original internal reward computation
+                internal_reward = self.pathos.compute_internal_reward(
+                    new_state, self.pathos.current_state
+                )
             
-            # Update preference learning
+            # Update preference learning with autonomous signals
             total_reward = internal_reward + external_reward
-            self.logos.update_preferences(total_reward, semantic_vector)
+            
+            # Enhanced preference learning with autonomous context
+            if self.autonomous_reward_system:
+                # Use autonomous reward components for more sophisticated preference learning
+                self.logos.update_preferences(total_reward, semantic_vector)
+                # Additional autonomous preference updates could be added here
+            else:
+                # Fallback to original preference learning
+                self.logos.update_preferences(total_reward, semantic_vector)
             
             logger.debug(f"Cycle {self.cycle_count} - Pathos update", 
                         internal_reward=internal_reward,
@@ -409,3 +481,59 @@ class AutonomousAgent:
             self.logos.update_tool_effectiveness(result.tool_name, reward, category)
         
         logger.debug(f"Processed tool result for {result.tool_name}: success={result.success}")
+    
+    def _identify_knowledge_gaps(self) -> List[str]:
+        """Identify current knowledge gaps for autonomous reward system."""
+        # Extract knowledge gaps from logos layer if available
+        if hasattr(self.logos, '_identify_knowledge_gaps'):
+            return self.logos._identify_knowledge_gaps()
+        
+        # Fallback: identify gaps based on unexplored semantic categories
+        if hasattr(self.logos, 'semantic_categories') and hasattr(self.logos, 'historical_patterns'):
+            unexplored = []
+            for category in self.logos.semantic_categories:
+                if category not in self.logos.historical_patterns or len(self.logos.historical_patterns[category]) < 3:
+                    unexplored.append(category)
+            return unexplored
+        
+        return ['exploration', 'creativity', 'problem_solving']  # Default gaps
+    
+    def _extract_skill_domains(self) -> Dict[str, List[float]]:
+        """Extract skill domains and performance history for autonomous reward system."""
+        # Extract from logos layer if available
+        if hasattr(self.logos, 'historical_patterns'):
+            return {domain: history for domain, history in self.logos.historical_patterns.items()}
+        
+        return {}  # Default empty
+    
+    def _assess_current_capabilities(self) -> set:
+        """Assess current agent capabilities for autonomous reward system."""
+        capabilities = set()
+        
+        # Add capabilities based on available tools
+        if self.tools:
+            available_tools = self.tools.get_available_tools()
+            capabilities.update(available_tools)
+        
+        # Add capabilities based on logos preferences
+        if hasattr(self.logos, 'preference_weights'):
+            strong_preferences = [cat for cat, weight in self.logos.preference_weights.items() if weight > 0.6]
+            capabilities.update(strong_preferences)
+        
+        return capabilities
+    
+    def _identify_learning_opportunities(self) -> List[str]:
+        """Identify current learning opportunities for autonomous reward system."""
+        opportunities = []
+        
+        # Identify opportunities from knowledge gaps
+        gaps = self._identify_knowledge_gaps()
+        opportunities.extend([f"explore_{gap}" for gap in gaps[:3]])
+        
+        # Identify opportunities from weak skill areas
+        skill_domains = self._extract_skill_domains()
+        for domain, history in skill_domains.items():
+            if history and np.mean(history) < 0.3:  # Weak performance
+                opportunities.append(f"improve_{domain}")
+        
+        return opportunities[:5]  # Limit to top 5 opportunities

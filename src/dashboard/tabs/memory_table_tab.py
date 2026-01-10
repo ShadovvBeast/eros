@@ -16,9 +16,10 @@ from .base_tab import BaseTab
 class MemoryTableTab(BaseTab):
     """Memory table display tab showing all memory traces in tabular format."""
     
-    def __init__(self, notebook, memory_traces):
+    def __init__(self, notebook, memory_traces, session_manager=None):
         """Initialize memory table tab."""
         self.memory_traces = memory_traces
+        self.session_manager = session_manager
         super().__init__(notebook, "Memory Table", "📊")
         self._create_memory_table()
     
@@ -92,6 +93,14 @@ class MemoryTableTab(BaseTab):
             command=self.update_display
         )
         refresh_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Clear Memory button
+        clear_btn = ttk.Button(
+            controls_frame, 
+            text="🗑️ Clear Memory", 
+            command=self._clear_memory
+        )
+        clear_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         # Export button
         export_btn = ttk.Button(
@@ -465,6 +474,85 @@ class MemoryTableTab(BaseTab):
         
         except Exception as e:
             tk.messagebox.showerror("Export Error", f"Failed to export data: {e}")
+    
+    def _clear_memory(self):
+        """Clear all memory traces after confirmation."""
+        import tkinter.messagebox as messagebox
+        
+        # Confirm with user
+        if not messagebox.askyesno(
+            "Clear Memory", 
+            "This will permanently delete all stored memory traces.\n\n"
+            "This action cannot be undone. Are you sure you want to continue?\n\n"
+            "Note: This will clear old static memories and allow you to see new dynamic memories."
+        ):
+            return
+        
+        try:
+            # Use the session manager passed to the constructor
+            if self.session_manager:
+                # Get current agent and its memory system
+                current_agent = self.session_manager.get_current_agent()
+                if current_agent and hasattr(current_agent, 'memory'):
+                    # Clear the memory system (this handles persistent storage too)
+                    if hasattr(current_agent.memory, 'clear_all_traces'):
+                        current_agent.memory.clear_all_traces()
+                        messagebox.showinfo(
+                            "Memory Cleared", 
+                            "All memory traces have been cleared successfully!\n\n"
+                            "✅ Old static memories removed from storage\n"
+                            "✅ New memories will use dynamic, pathos-driven intentions\n"
+                            "✅ Continue running the agent to see dynamic memory creation"
+                        )
+                    elif hasattr(current_agent.memory, 'traces'):
+                        # Fallback: clear the traces list directly
+                        current_agent.memory.traces.clear()
+                        messagebox.showinfo(
+                            "Memory Cleared", 
+                            "Memory traces cleared from active session.\n\n"
+                            "Note: Persistent storage may still contain old memories.\n"
+                            "Restart the session to ensure a clean start."
+                        )
+                    
+                    # Clear local memory traces reference
+                    if hasattr(self, 'memory_traces'):
+                        self.memory_traces.clear()
+                    
+                    # Update display
+                    self.update_display()
+                    return
+                else:
+                    messagebox.showwarning(
+                        "No Agent Running", 
+                        "No agent session is currently active.\n\n"
+                        "Start an agent session first, then try clearing memory."
+                    )
+                    return
+            
+            # Fallback: clear local display only
+            if hasattr(self, 'memory_traces'):
+                self.memory_traces.clear()
+                self.update_display()
+                
+                messagebox.showwarning(
+                    "Memory Cleared (Display Only)", 
+                    "Local memory display has been cleared.\n\n"
+                    "Note: This only clears the display. To fully clear stored memories,\n"
+                    "restart the agent session."
+                )
+            else:
+                messagebox.showerror(
+                    "Clear Memory Error", 
+                    "Could not access memory system.\n\n"
+                    "Try restarting the agent session to clear stored memories."
+                )
+                
+        except Exception as e:
+            messagebox.showerror(
+                "Clear Memory Error", 
+                f"Failed to clear memory traces: {str(e)}\n\n"
+                "Try restarting the agent session to clear stored memories."
+            )
     
     def export_data(self, export_dir: str):
         """Export tab data to specified directory."""

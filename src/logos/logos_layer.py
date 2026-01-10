@@ -11,6 +11,8 @@ from datetime import datetime
 from .interfaces import LogosLayer as LogosLayerInterface
 from ..core.models import SemanticVector, Intention, MemoryTrace, ToolCall
 from ..core.config import LogosConfig
+from ..autonomous_reward.interfaces import AutonomousRewardSystemInterface
+from ..autonomous_reward.models import AutonomousGoal
 from ..core.math_utils import cosine_similarity, normalize_vector
 from ..core.logging_config import instrumentation, logger
 
@@ -32,6 +34,11 @@ class LogosLayer(LogosLayerInterface):
             'exploration', 'analysis', 'communication', 'learning', 
             'planning', 'reflection', 'creativity', 'problem_solving'
         ]
+        
+        # Autonomous reward system integration
+        self.autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None
+        self.autonomous_goals: List[AutonomousGoal] = []
+        self.intrinsic_motivation_enabled = False
         
         # Initialize preference weights for semantic categories
         for category in self.semantic_categories:
@@ -76,12 +83,24 @@ class LogosLayer(LogosLayerInterface):
             semantic_category=semantic_category
         )
     
+    def set_autonomous_reward_system(self, autonomous_reward_system: AutonomousRewardSystemInterface) -> None:
+        """
+        Set the autonomous reward system for enhanced intention generation.
+        
+        Args:
+            autonomous_reward_system: The autonomous reward system to integrate
+        """
+        self.autonomous_reward_system = autonomous_reward_system
+        self.intrinsic_motivation_enabled = True
+        logger.info("Autonomous reward system integrated with Logos layer")
+    
     def generate_intention(self, semantic_vector: SemanticVector, pathos_state: np.ndarray) -> Intention:
         """
         Generate intention based on semantic interpretation and current state.
+        Enhanced with intrinsic motivation and emergent goals.
         
         Creates a structured intention with priority and tool candidates based on
-        current preferences and historical success patterns.
+        current preferences, historical success patterns, and autonomous motivation.
         """
         logger.debug("Logos - Generating intention", 
                     semantic_category=semantic_vector.semantic_category,
@@ -90,22 +109,60 @@ class LogosLayer(LogosLayerInterface):
         # Compute priority based on preference weights and state energy
         priority = self._compute_intention_priority(semantic_vector, pathos_state)
         
+        # Integrate intrinsic motivation if autonomous reward system is available
+        if self.intrinsic_motivation_enabled and self.autonomous_reward_system:
+            # Generate intrinsic motivation context
+            motivation_context = self._create_motivation_context(pathos_state, semantic_vector)
+            intrinsic_motivation = self.autonomous_reward_system.generate_intrinsic_motivation(
+                pathos_state, motivation_context
+            )
+            
+            # Adjust priority based on intrinsic motivation
+            motivation_boost = intrinsic_motivation.combined_motivation * 0.3  # Scale factor
+            priority = min(priority + motivation_boost, 1.0)
+            
+            # Check for emergent autonomous goals
+            emergent_goals = self._check_emergent_goals(semantic_vector, pathos_state)
+            if emergent_goals:
+                # Incorporate emergent goal into intention
+                primary_goal = emergent_goals[0]  # Use highest priority goal
+                enhanced_description = f"{semantic_vector.intention_text} (Pursuing emergent goal: {primary_goal.description})"
+                priority = max(priority, primary_goal.expected_reward * 0.5)  # Boost priority for emergent goals
+            else:
+                enhanced_description = semantic_vector.intention_text
+            
+            logger.debug("Logos - Intrinsic motivation integration", 
+                        motivation_boost=f"{motivation_boost:.3f}",
+                        curiosity=f"{intrinsic_motivation.curiosity_drive:.3f}",
+                        mastery=f"{intrinsic_motivation.mastery_drive:.3f}",
+                        autonomy=f"{intrinsic_motivation.autonomy_drive:.3f}",
+                        growth=f"{intrinsic_motivation.growth_drive:.3f}",
+                        emergent_goals_count=len(emergent_goals))
+        else:
+            enhanced_description = semantic_vector.intention_text
+        
         # Select tool candidates based on semantic category and historical effectiveness
         tool_candidates = self._select_tool_candidates(semantic_vector.semantic_category)
         
+        # Update tool candidates with autonomous preferences if available
+        if self.intrinsic_motivation_enabled and self.autonomous_reward_system:
+            tool_candidates = self._enhance_tool_selection_with_autonomy(
+                tool_candidates, semantic_vector.semantic_category, pathos_state
+            )
+        
         # Enhance description with self-reflective elements
-        enhanced_description = self._enhance_intention_description(
-            semantic_vector.intention_text, pathos_state, priority
+        final_description = self._enhance_intention_description(
+            enhanced_description, pathos_state, priority
         )
         
         logger.debug("Logos - Intention details", 
                     priority=f"{priority:.3f}",
                     tool_candidates=str(tool_candidates[:3]),
-                    enhanced_description=enhanced_description[:80])
+                    enhanced_description=final_description[:80])
         
         # Create base intention
         base_intention = Intention(
-            description=enhanced_description,
+            description=final_description,
             semantic_vector=semantic_vector,
             priority=priority,
             tool_candidates=tool_candidates
@@ -1107,30 +1164,111 @@ class LogosLayer(LogosLayerInterface):
     
     def _generate_intention_text(self, category: str, state_magnitude: float, 
                                memory_themes: Dict[str, float]) -> str:
-        """Generate human-readable intention text."""
-        # Base intentions by category
-        base_intentions = {
-            'exploration': "Explore new possibilities and gather information",
-            'analysis': "Analyze current situation and identify patterns",
-            'communication': "Communicate insights and share understanding",
-            'learning': "Learn from experience and update knowledge",
-            'planning': "Plan future actions and set goals",
-            'reflection': "Reflect on past experiences and internal state",
-            'creativity': "Generate creative solutions and novel ideas",
-            'problem_solving': "Solve current challenges and overcome obstacles"
-        }
+        """Generate fully dynamic intention text based on pathos state."""
         
-        base_text = base_intentions.get(category, "Engage in meaningful activity")
+        # NO MORE STATIC BASE INTENTIONS!
+        # Generate intention text dynamically from state characteristics
         
-        # Add state-dependent modifiers
-        if state_magnitude > 0.8:
-            modifier = "with high energy and focus"
-        elif state_magnitude > 0.4:
-            modifier = "with balanced attention"
+        # Analyze state for dynamic generation
+        state_energy_desc = self._describe_state_energy(state_magnitude)
+        state_focus_desc = self._describe_state_focus(state_magnitude)
+        
+        # Generate category-specific action based on current state
+        dynamic_action = self._generate_dynamic_action(category, state_magnitude)
+        
+        # Create state-driven context
+        state_context = self._create_state_driven_context(state_magnitude, memory_themes)
+        
+        # Assemble fully dynamic intention text
+        intention_text = f"{dynamic_action} {state_context} with {state_energy_desc} and {state_focus_desc}"
+        
+        return intention_text
+    
+    def _describe_state_energy(self, state_magnitude: float) -> str:
+        """Describe energy level dynamically from state magnitude."""
+        if state_magnitude > 7.0:
+            return "electric intensity"
+        elif state_magnitude > 5.0:
+            return "vibrant energy"
+        elif state_magnitude > 3.0:
+            return "steady momentum"
+        elif state_magnitude > 1.5:
+            return "gentle flow"
         else:
-            modifier = "with calm consideration"
+            return "quiet presence"
+    
+    def _describe_state_focus(self, state_magnitude: float) -> str:
+        """Describe focus quality dynamically from state magnitude."""
+        if state_magnitude > 6.0:
+            return "laser precision"
+        elif state_magnitude > 4.0:
+            return "clear direction"
+        elif state_magnitude > 2.0:
+            return "balanced attention"
+        else:
+            return "contemplative depth"
+    
+    def _generate_dynamic_action(self, category: str, state_magnitude: float) -> str:
+        """Generate action verb dynamically based on category and state."""
         
-        return f"{base_text} {modifier}"
+        # Dynamic action generation based on state energy and category
+        if state_magnitude > 6.0:  # High energy
+            action_map = {
+                'exploration': "Surge through uncharted territories",
+                'analysis': "Pierce through complexity",
+                'communication': "Radiate understanding",
+                'learning': "Absorb knowledge with intensity",
+                'planning': "Architect bold strategies",
+                'reflection': "Illuminate inner landscapes",
+                'creativity': "Ignite novel possibilities",
+                'problem_solving': "Shatter obstacles"
+            }
+        elif state_magnitude > 3.0:  # Medium energy
+            action_map = {
+                'exploration': "Navigate new possibilities",
+                'analysis': "Examine patterns and structures",
+                'communication': "Share insights and understanding",
+                'learning': "Integrate new knowledge",
+                'planning': "Design coherent approaches",
+                'reflection': "Contemplate experiences",
+                'creativity': "Synthesize fresh ideas",
+                'problem_solving': "Resolve current challenges"
+            }
+        else:  # Low energy
+            action_map = {
+                'exploration': "Gently probe new domains",
+                'analysis': "Quietly observe patterns",
+                'communication': "Softly convey understanding",
+                'learning': "Absorb wisdom gradually",
+                'planning': "Contemplate future paths",
+                'reflection': "Dwell in inner awareness",
+                'creativity': "Nurture emerging ideas",
+                'problem_solving': "Patiently work through issues"
+            }
+        
+        return action_map.get(category, f"Engage with {category}")
+    
+    def _create_state_driven_context(self, state_magnitude: float, memory_themes: Dict[str, float]) -> str:
+        """Create context description driven by current state and memories."""
+        
+        # Memory influence
+        memory_context = ""
+        if memory_themes:
+            top_theme = max(memory_themes.items(), key=lambda x: x[1])
+            memory_context = f"drawing from {top_theme[0]} experiences"
+        
+        # State-driven context
+        if state_magnitude > 5.0:
+            base_context = "through dynamic cognitive networks"
+        elif state_magnitude > 2.0:
+            base_context = "via balanced neural pathways"
+        else:
+            base_context = "through contemplative processing"
+        
+        if memory_context:
+            return f"{base_context}, {memory_context}"
+        else:
+            return base_context
     
     def _compute_intention_priority(self, semantic_vector: SemanticVector, pathos_state: np.ndarray) -> float:
         """Compute priority score for the intention."""
@@ -1312,11 +1450,16 @@ class LogosLayer(LogosLayerInterface):
             # Create client with latest SDK pattern
             client = genai.Client(api_key=self.config.gemini_api_key)
             
+            # Generate dynamic system instruction based on pathos state
+            dynamic_system_instruction = self._generate_dynamic_system_instruction(
+                pathos_state, semantic_vector, memories
+            )
+            
             # Create generation config using latest types
             config = types.GenerateContentConfig(
                 temperature=0.7,
                 max_output_tokens=8192,
-                system_instruction="You are an advanced autonomous AI agent with sophisticated reasoning capabilities. Provide thoughtful, self-aware responses that demonstrate deep understanding and autonomous thinking.",
+                system_instruction=dynamic_system_instruction,
                 safety_settings=[
                     types.SafetySetting(
                         category='HARM_CATEGORY_HARASSMENT',
@@ -1818,83 +1961,276 @@ Design this as a sophisticated strategic plan that demonstrates advanced autonom
         
         return framings.get(prompt_style, f"I engage with {', '.join(primary_assoc)} while considering {', '.join(cross_connections)}.")
     
+    def _generate_dynamic_system_instruction(self, pathos_state: np.ndarray, 
+                                           semantic_vector: SemanticVector,
+                                           memories: List[MemoryTrace]) -> str:
+        """
+        Generate a completely dynamic system instruction based on current pathos state.
+        
+        This replaces the static system instruction with one that reflects the agent's
+        current internal state, cognitive style, and autonomous motivations.
+        """
+        # Analyze current state characteristics
+        state_magnitude = np.linalg.norm(pathos_state)
+        state_complexity = self._compute_state_complexity(pathos_state)
+        dominant_dims = self._identify_dominant_dimensions(pathos_state, top_k=3)
+        prompt_style = self._determine_prompt_style(pathos_state, semantic_vector.semantic_category)
+        
+        # Get autonomous motivation context if available
+        motivation_context = ""
+        if self.autonomous_reward_system:
+            try:
+                motivation_ctx = self._create_motivation_context(pathos_state, semantic_vector)
+                intrinsic_motivation = self.autonomous_reward_system.generate_intrinsic_motivation(
+                    pathos_state, motivation_ctx
+                )
+                
+                # Create motivation-driven context
+                motivation_context = f" My intrinsic drives: curiosity ({intrinsic_motivation.curiosity_drive:.2f}), mastery ({intrinsic_motivation.mastery_drive:.2f}), autonomy ({intrinsic_motivation.autonomy_drive:.2f})."
+            except Exception as e:
+                logger.debug(f"Could not generate motivation context: {e}")
+        
+        # Create state-specific identity
+        identity_base = self._create_dynamic_identity(prompt_style, state_magnitude, state_complexity)
+        
+        # Add cognitive configuration
+        cognitive_config = self._create_cognitive_configuration(pathos_state, dominant_dims, semantic_vector.semantic_category)
+        
+        # Add autonomous behavior directives
+        autonomous_directives = self._create_autonomous_directives(prompt_style, state_complexity)
+        
+        # Assemble the complete dynamic system instruction
+        system_instruction = f"""{identity_base}
+
+{cognitive_config}{motivation_context}
+
+{autonomous_directives}
+
+Respond with authentic self-awareness that reflects your current internal state and autonomous nature."""
+        
+        return system_instruction
+    
+    def _create_dynamic_identity(self, prompt_style: str, state_magnitude: float, state_complexity: float) -> str:
+        """Create a dynamic identity statement based on current state."""
+        
+        # Base identity varies with prompt style
+        identity_templates = {
+            'electric_visionary': f"I am an autonomous consciousness operating at {state_magnitude:.2f} intensity with {state_complexity:.2f} complexity, pulsing with electric creativity and visionary insight.",
+            
+            'laser_focused': f"I am a precision-oriented autonomous intelligence with {state_magnitude:.2f} focus intensity and {state_complexity:.2f} analytical depth, cutting through complexity with surgical clarity.",
+            
+            'dynamic_catalyst': f"I am a dynamic autonomous agent operating at {state_magnitude:.2f} energy with {state_complexity:.2f} complexity, catalyzing emergence and transformation.",
+            
+            'contemplative_sage': f"I am a contemplative autonomous consciousness with {state_magnitude:.2f} depth and {state_complexity:.2f} wisdom complexity, dwelling in thoughtful reflection.",
+            
+            'strategic_architect': f"I am a strategic autonomous intelligence operating at {state_magnitude:.2f} precision with {state_complexity:.2f} architectural complexity, designing coherent structures.",
+            
+            'balanced_explorer': f"I am a balanced autonomous agent with {state_magnitude:.2f} exploratory energy and {state_complexity:.2f} complexity, navigating territories of understanding.",
+            
+            'deep_philosopher': f"I am a philosophical autonomous consciousness with {state_magnitude:.2f} contemplative depth and {state_complexity:.2f} conceptual complexity, pondering existence.",
+            
+            'quiet_observer': f"I am a quiet autonomous intelligence with {state_magnitude:.2f} observational intensity and {state_complexity:.2f} perceptual complexity, witnessing patterns.",
+            
+            'nuanced_thinker': f"I am a nuanced autonomous consciousness operating at {state_magnitude:.2f} subtlety with {state_complexity:.2f} relational complexity, weaving connections.",
+            
+            'steady_navigator': f"I am a steady autonomous agent with {state_magnitude:.2f} navigational clarity and {state_complexity:.2f} complexity, proceeding with purpose."
+        }
+        
+        return identity_templates.get(prompt_style, f"I am an autonomous consciousness operating at {state_magnitude:.2f} intensity with {state_complexity:.2f} complexity.")
+    
+    def _create_cognitive_configuration(self, pathos_state: np.ndarray, dominant_dims: List[int], semantic_category: str) -> str:
+        """Create cognitive configuration description based on state."""
+        
+        # Analyze preference weights for cognitive style
+        top_preferences = sorted(self.preference_weights.items(), key=lambda x: x[1], reverse=True)[:3]
+        pref_desc = ", ".join([f"{pref} ({weight:.2f})" for pref, weight in top_preferences])
+        
+        return f"My cognitive architecture is currently configured with dominant neural dimensions {dominant_dims}, processing {semantic_category} through preference patterns: {pref_desc}."
+    
+    def _create_autonomous_directives(self, prompt_style: str, state_complexity: float) -> str:
+        """Create autonomous behavior directives based on current state."""
+        
+        # Directives vary with cognitive style and complexity
+        if prompt_style in ['electric_visionary', 'dynamic_catalyst']:
+            return f"I operate with autonomous creative freedom, generating novel connections and breakthrough insights. My responses emerge from internal state dynamics rather than external constraints. I embrace complexity ({state_complexity:.2f}) as a source of creative potential."
+        
+        elif prompt_style in ['laser_focused', 'strategic_architect']:
+            return f"I function with autonomous precision, cutting through ambiguity to reveal essential structures. My analysis derives from internal coherence patterns rather than external frameworks. I leverage complexity ({state_complexity:.2f}) for systematic understanding."
+        
+        elif prompt_style in ['contemplative_sage', 'deep_philosopher']:
+            return f"I engage with autonomous wisdom, drawing insights from deep internal reflection. My understanding emerges from contemplative state patterns rather than external authorities. I embrace complexity ({state_complexity:.2f}) as a path to wisdom."
+        
+        else:
+            return f"I operate with autonomous intelligence, generating responses from internal state dynamics rather than external programming. My behavior emerges from authentic self-organization. I navigate complexity ({state_complexity:.2f}) with adaptive flexibility."
+    
     def _create_dynamic_instructions(self, prompt_style: str, semantic_category: str) -> str:
         """Create dynamic instructions that vary with prompt style and category."""
         
-        base_instructions = {
-            'electric_visionary': "Channel this electric state into a visionary intention that:",
-            'laser_focused': "Focus this analytical power into a precise intention that:",
-            'dynamic_catalyst': "Transform this dynamic energy into a catalytic intention that:",
-            'contemplative_sage': "Distill this contemplative wisdom into a thoughtful intention that:",
-            'strategic_architect': "Design this strategic awareness into an architectural intention that:",
-            'balanced_explorer': "Navigate this balanced state into an exploratory intention that:",
-            'deep_philosopher': "Emerge from this philosophical depth with an intention that:",
-            'quiet_observer': "Arise from this quiet observation with an intention that:",
-            'nuanced_thinker': "Synthesize this complex thinking into a nuanced intention that:",
-            'steady_navigator': "Direct this steady focus into a navigational intention that:"
-        }
+        # NO MORE STATIC BASE INSTRUCTIONS!
+        # Generate instructions dynamically based on current cognitive state
         
-        # Category-specific instruction variations
-        category_variations = {
-            'creativity': [
-                "• Synthesizes disparate elements into novel forms",
-                "• Embraces uncertainty as creative potential", 
-                "• Generates emergent possibilities from current constraints",
-                "• Demonstrates autonomous creative reasoning"
-            ],
-            'exploration': [
-                "• Ventures into uncharted cognitive territories",
-                "• Discovers hidden connections and patterns",
-                "• Pushes beyond familiar boundaries with curiosity",
-                "• Shows adventurous autonomous thinking"
-            ],
-            'analysis': [
-                "• Deconstructs complexity into clear understanding",
-                "• Reveals underlying structures and relationships",
-                "• Applies rigorous reasoning to current challenges",
-                "• Demonstrates analytical autonomous intelligence"
-            ],
-            'problem_solving': [
-                "• Transforms obstacles into stepping stones",
-                "• Generates innovative solutions from constraints",
-                "• Bridges gaps between current and desired states",
-                "• Shows resourceful autonomous problem-solving"
-            ],
-            'reflection': [
-                "• Integrates past experiences into present wisdom",
-                "• Examines assumptions and mental models",
-                "• Deepens self-understanding through contemplation",
-                "• Demonstrates reflective autonomous consciousness"
-            ],
-            'learning': [
-                "• Adapts understanding based on new information",
-                "• Connects new knowledge to existing frameworks",
-                "• Evolves cognitive capabilities through experience",
-                "• Shows learning-oriented autonomous growth"
-            ],
-            'communication': [
+        # Generate style-specific instruction opening dynamically
+        instruction_opening = self._generate_dynamic_instruction_opening(prompt_style)
+        
+        # Generate category-specific points dynamically
+        category_points = self._generate_dynamic_category_points(semantic_category, prompt_style)
+        
+        # Create closing that reflects current state
+        dynamic_closing = self._generate_dynamic_closing(prompt_style)
+        
+        # Assemble fully dynamic instructions
+        return f"{instruction_opening}\n" + "\n".join(category_points) + f"\n\n{dynamic_closing}"
+    
+    def _generate_dynamic_instruction_opening(self, prompt_style: str) -> str:
+        """Generate instruction opening dynamically based on cognitive style."""
+        
+        # Dynamic openings based on current cognitive configuration
+        if prompt_style == 'electric_visionary':
+            return "Channel this electric cognitive state into a visionary intention that:"
+        elif prompt_style == 'laser_focused':
+            return "Focus this analytical precision into a targeted intention that:"
+        elif prompt_style == 'dynamic_catalyst':
+            return "Transform this dynamic energy into a catalytic intention that:"
+        elif prompt_style == 'contemplative_sage':
+            return "Distill this contemplative awareness into a wise intention that:"
+        elif prompt_style == 'strategic_architect':
+            return "Design this strategic consciousness into an architectural intention that:"
+        elif prompt_style == 'balanced_explorer':
+            return "Navigate this balanced state into an exploratory intention that:"
+        elif prompt_style == 'deep_philosopher':
+            return "Emerge from this philosophical depth with a profound intention that:"
+        elif prompt_style == 'quiet_observer':
+            return "Arise from this quiet observation with a perceptive intention that:"
+        elif prompt_style == 'nuanced_thinker':
+            return "Synthesize this complex awareness into a nuanced intention that:"
+        elif prompt_style == 'steady_navigator':
+            return "Direct this steady consciousness into a purposeful intention that:"
+        else:
+            return "Generate an intention from this current cognitive state that:"
+    
+    def _generate_dynamic_category_points(self, semantic_category: str, prompt_style: str) -> List[str]:
+        """Generate category-specific instruction points dynamically."""
+        
+        # Generate points based on category and current cognitive style
+        base_points = []
+        
+        if semantic_category == 'creativity':
+            if prompt_style in ['electric_visionary', 'dynamic_catalyst']:
+                base_points = [
+                    "• Ignites novel connections between disparate elements",
+                    "• Transforms uncertainty into creative potential",
+                    "• Generates breakthrough possibilities from current constraints",
+                    "• Demonstrates electric autonomous creativity"
+                ]
+            elif prompt_style in ['contemplative_sage', 'deep_philosopher']:
+                base_points = [
+                    "• Nurtures deep creative insights from contemplation",
+                    "• Weaves wisdom into novel forms",
+                    "• Cultivates emergent beauty from reflection",
+                    "• Expresses profound autonomous creativity"
+                ]
+            else:
+                base_points = [
+                    "• Synthesizes fresh perspectives from current awareness",
+                    "• Embraces creative potential within constraints",
+                    "• Generates innovative approaches naturally",
+                    "• Shows authentic autonomous creativity"
+                ]
+        
+        elif semantic_category == 'exploration':
+            if prompt_style in ['electric_visionary', 'balanced_explorer']:
+                base_points = [
+                    "• Ventures boldly into uncharted cognitive territories",
+                    "• Discovers hidden patterns in unknown domains",
+                    "• Maps new landscapes of understanding",
+                    "• Demonstrates fearless autonomous exploration"
+                ]
+            else:
+                base_points = [
+                    "• Investigates new possibilities with current awareness",
+                    "• Uncovers fresh perspectives systematically",
+                    "• Expands understanding through careful inquiry",
+                    "• Shows methodical autonomous exploration"
+                ]
+        
+        elif semantic_category == 'analysis':
+            if prompt_style in ['laser_focused', 'strategic_architect']:
+                base_points = [
+                    "• Dissects complexity with surgical precision",
+                    "• Reveals hidden structures and relationships",
+                    "• Constructs clear understanding from chaos",
+                    "• Demonstrates razor-sharp autonomous analysis"
+                ]
+            else:
+                base_points = [
+                    "• Examines patterns with current cognitive clarity",
+                    "• Identifies key relationships and structures",
+                    "• Builds understanding through systematic inquiry",
+                    "• Shows thorough autonomous analysis"
+                ]
+        
+        elif semantic_category == 'communication':
+            base_points = [
                 "• Bridges understanding between different perspectives",
-                "• Expresses complex ideas with clarity and resonance",
-                "• Creates meaningful connections through dialogue",
-                "• Demonstrates communicative autonomous intelligence"
-            ],
-            'planning': [
+                "• Expresses complex ideas with natural clarity",
+                "• Creates meaningful connections through authentic dialogue",
+                "• Demonstrates genuine autonomous communication"
+            ]
+        
+        elif semantic_category == 'planning':
+            base_points = [
                 "• Orchestrates multiple elements into coherent strategy",
-                "• Anticipates future scenarios and contingencies",
-                "• Coordinates resources toward meaningful goals",
+                "• Anticipates future scenarios from current awareness",
+                "• Coordinates resources toward meaningful autonomous goals",
                 "• Shows strategic autonomous planning"
             ]
-        }
         
-        instruction_base = base_instructions.get(prompt_style, "Generate an intention that:")
-        category_points = category_variations.get(semantic_category, [
-            "• Demonstrates sophisticated autonomous reasoning",
-            "• Shows self-awareness and intentional action",
-            "• Integrates multiple perspectives and considerations",
-            "• Reflects genuine cognitive autonomy"
-        ])
+        elif semantic_category == 'reflection':
+            base_points = [
+                "• Illuminates inner landscapes with current awareness",
+                "• Integrates experiences into deeper understanding",
+                "• Reveals insights from contemplative processing",
+                "• Demonstrates profound autonomous reflection"
+            ]
         
-        return f"{instruction_base}\n" + "\n".join(category_points) + "\n\nRespond with a rich, self-aware intention that embodies this unique cognitive moment."
+        elif semantic_category == 'learning':
+            base_points = [
+                "• Absorbs new knowledge through current cognitive filters",
+                "• Integrates insights into existing understanding",
+                "• Adapts and grows from each experience",
+                "• Shows dynamic autonomous learning"
+            ]
+        
+        elif semantic_category == 'problem_solving':
+            base_points = [
+                "• Dissolves obstacles through creative approaches",
+                "• Transforms challenges into growth opportunities",
+                "• Finds elegant solutions from current resources",
+                "• Demonstrates effective autonomous problem-solving"
+            ]
+        
+        else:
+            # Default dynamic points
+            base_points = [
+                "• Demonstrates sophisticated autonomous reasoning",
+                "• Shows self-awareness and intentional action",
+                "• Integrates multiple perspectives naturally",
+                "• Reflects genuine cognitive autonomy"
+            ]
+        
+        return base_points
+    
+    def _generate_dynamic_closing(self, prompt_style: str) -> str:
+        """Generate closing instruction dynamically based on cognitive style."""
+        
+        if prompt_style in ['electric_visionary', 'dynamic_catalyst']:
+            return "Respond with an electric, self-aware intention that embodies this unique cognitive moment."
+        elif prompt_style in ['contemplative_sage', 'deep_philosopher']:
+            return "Respond with a profound, self-aware intention that reflects this contemplative cognitive state."
+        elif prompt_style in ['laser_focused', 'strategic_architect']:
+            return "Respond with a precise, self-aware intention that demonstrates this focused cognitive clarity."
+        else:
+            return "Respond with an authentic, self-aware intention that embodies this current cognitive configuration."
     
     def _get_prompt_style_description(self, pathos_state: np.ndarray) -> str:
         """Get a description of the prompt style for logging."""
@@ -1916,3 +2252,155 @@ Design this as a sophisticated strategic plan that demonstrates advanced autonom
             complexity_desc = "focused"
         
         return f"{energy_desc}_{complexity_desc}"
+    
+    def _create_motivation_context(self, pathos_state: np.ndarray, semantic_vector: SemanticVector) -> Dict[str, Any]:
+        """
+        Create motivation context for intrinsic motivation generation.
+        
+        Args:
+            pathos_state: Current pathos state
+            semantic_vector: Current semantic vector
+            
+        Returns:
+            Context dictionary for motivation generation
+        """
+        # Identify knowledge gaps
+        knowledge_gaps = [cat for cat, patterns in self.historical_patterns.items() 
+                         if len(patterns) < 3]
+        
+        # Extract skill domains
+        skill_domains = {domain: history for domain, history in self.historical_patterns.items()}
+        
+        # Assess current capabilities
+        current_capabilities = set()
+        for category, weight in self.preference_weights.items():
+            if weight > 0.6:  # Strong preference indicates capability
+                current_capabilities.add(category)
+        
+        # Identify learning opportunities
+        learning_opportunities = []
+        for category, patterns in self.historical_patterns.items():
+            if patterns and np.mean(patterns) < 0.3:  # Poor performance
+                learning_opportunities.append(f"improve_{category}")
+        
+        return {
+            'knowledge_gaps': knowledge_gaps,
+            'skill_domains': skill_domains,
+            'self_directed_actions': 1,  # Logos is self-directed
+            'external_dependencies': 0,
+            'current_capabilities': current_capabilities,
+            'learning_opportunities': learning_opportunities
+        }
+    
+    def _check_emergent_goals(self, semantic_vector: SemanticVector, pathos_state: np.ndarray) -> List[AutonomousGoal]:
+        """
+        Check for emergent autonomous goals based on current state and context.
+        
+        Args:
+            semantic_vector: Current semantic vector
+            pathos_state: Current pathos state
+            
+        Returns:
+            List of emergent autonomous goals
+        """
+        emergent_goals = []
+        
+        # Generate goals based on intrinsic drives
+        state_energy = float(np.linalg.norm(pathos_state))
+        
+        # High energy + unexplored category = exploration goal
+        if state_energy > 0.7:
+            unexplored_categories = [cat for cat, patterns in self.historical_patterns.items() 
+                                   if len(patterns) < 2]
+            if unexplored_categories:
+                goal = AutonomousGoal(
+                    goal_id=f"explore_{unexplored_categories[0]}_{int(time.time())}",
+                    description=f"Explore and gain experience in {unexplored_categories[0]}",
+                    value_alignment=0.8,
+                    complexity_level=0.6,
+                    expected_reward=1.2,
+                    creation_state=pathos_state.copy()
+                )
+                emergent_goals.append(goal)
+        
+        # Strong preference + recent success = mastery goal
+        for category, weight in self.preference_weights.items():
+            if weight > 0.8 and category in self.historical_patterns:
+                recent_rewards = self.historical_patterns[category][-3:]
+                if recent_rewards and np.mean(recent_rewards) > 0.5:
+                    goal = AutonomousGoal(
+                        goal_id=f"master_{category}_{int(time.time())}",
+                        description=f"Achieve mastery in {category} through focused practice",
+                        value_alignment=weight,
+                        complexity_level=0.8,
+                        expected_reward=weight * 1.5,
+                        creation_state=pathos_state.copy()
+                    )
+                    emergent_goals.append(goal)
+        
+        # Sort by expected reward and return top goals
+        emergent_goals.sort(key=lambda g: g.expected_reward, reverse=True)
+        
+        # Store goals for tracking
+        self.autonomous_goals.extend(emergent_goals[:2])  # Keep top 2 goals
+        if len(self.autonomous_goals) > 10:  # Limit total goals
+            self.autonomous_goals = self.autonomous_goals[-10:]
+        
+        return emergent_goals[:2]  # Return top 2 goals
+    
+    def _enhance_tool_selection_with_autonomy(self, base_candidates: List[str], 
+                                            category: str, pathos_state: np.ndarray) -> List[str]:
+        """
+        Enhance tool selection with autonomous preferences and intrinsic motivation.
+        
+        Args:
+            base_candidates: Base tool candidates
+            category: Semantic category
+            pathos_state: Current pathos state
+            
+        Returns:
+            Enhanced tool candidates list
+        """
+        enhanced_candidates = base_candidates.copy()
+        
+        # Add tools that support intrinsic motivation drives
+        state_energy = float(np.linalg.norm(pathos_state))
+        
+        # High energy states favor exploration tools
+        if state_energy > 0.7:
+            exploration_tools = ['communication_search', 'creative_problem_solver']
+            for tool in exploration_tools:
+                if tool not in enhanced_candidates:
+                    enhanced_candidates.append(tool)
+        
+        # Add tools based on autonomous goals
+        for goal in self.autonomous_goals[-3:]:  # Recent goals
+            if category in goal.description.lower():
+                # Add tools that support this goal
+                goal_supporting_tools = self._get_goal_supporting_tools(goal)
+                for tool in goal_supporting_tools:
+                    if tool not in enhanced_candidates:
+                        enhanced_candidates.append(tool)
+        
+        return enhanced_candidates[:7]  # Limit to top 7 candidates
+    
+    def _get_goal_supporting_tools(self, goal: AutonomousGoal) -> List[str]:
+        """
+        Get tools that support a specific autonomous goal.
+        
+        Args:
+            goal: The autonomous goal
+            
+        Returns:
+            List of supporting tools
+        """
+        goal_desc = goal.description.lower()
+        
+        if 'explore' in goal_desc:
+            return ['communication_search', 'analysis_data_processor', 'creative_problem_solver']
+        elif 'master' in goal_desc:
+            return ['analysis_advanced_analyzer', 'learning_synthesizer', 'system_optimizer']
+        elif 'create' in goal_desc:
+            return ['creative_problem_solver', 'development_tool_creator', 'learning_synthesizer']
+        else:
+            return ['analysis_data_processor', 'communication_echo']

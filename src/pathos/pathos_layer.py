@@ -13,6 +13,7 @@ import logging
 from .interfaces import PathosLayer as PathosLayerInterface
 from ..core.models import SemanticVector, MemoryTrace, PathosState
 from ..core.config import PathosConfig
+from ..autonomous_reward.interfaces import AutonomousRewardSystemInterface
 from ..core.math_utils import (
     tanh_squash, compute_homeostatic_balance, compute_state_change_penalty,
     cosine_similarity, compute_similarity_weights, sigmoid_squash
@@ -40,6 +41,10 @@ class PathosLayer(PathosLayerInterface):
     def __init__(self, config: PathosConfig):
         super().__init__(config)
         self.homeostatic_targets = self._initialize_homeostatic_targets()
+        
+        # Autonomous reward system integration
+        self.autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None
+        self.autonomous_reward_feedback_enabled = False
         
         # Attractor dynamics components
         self.attractor_states: List[np.ndarray] = []  # Previously rewarding states
@@ -83,6 +88,17 @@ class PathosLayer(PathosLayerInterface):
             'balance': (0.05, 0.3)       # Mean absolute activation should be moderate
         }
     
+    def set_autonomous_reward_system(self, autonomous_reward_system: AutonomousRewardSystemInterface) -> None:
+        """
+        Set the autonomous reward system for enhanced state updates.
+        
+        Args:
+            autonomous_reward_system: The autonomous reward system to integrate
+        """
+        self.autonomous_reward_system = autonomous_reward_system
+        self.autonomous_reward_feedback_enabled = True
+        logger.info("Autonomous reward system integrated with Pathos layer")
+    
     def update_state(self, semantic_input: SemanticVector, external_reward: float,
                     interest: float, memory_echoes: List[MemoryTrace] = None) -> np.ndarray:
         """
@@ -119,6 +135,12 @@ class PathosLayer(PathosLayerInterface):
         # Combine all terms
         raw_update = decay_term + impulse_term + echo_term + attractor_influence
         
+        # Incorporate emergent value feedback if autonomous reward system is available
+        if self.autonomous_reward_feedback_enabled and self.autonomous_reward_system:
+            # Get emergent value influence on state update
+            emergent_value_influence = self._compute_emergent_value_influence(raw_update)
+            raw_update += emergent_value_influence
+        
         # Apply nonlinear squashing function g(·)
         self.current_state = self._apply_squashing_function(raw_update)
         
@@ -138,6 +160,7 @@ class PathosLayer(PathosLayerInterface):
         2. External reward influence
         3. Interest signal influence
         4. Current state modulation
+        5. Exploration noise to prevent fixed points
         
         Args:
             semantic_input: Semantic vector from Logos
@@ -159,22 +182,33 @@ class PathosLayer(PathosLayerInterface):
                 padding = np.zeros(self.config.state_dimension - len(semantic_embedding))
                 semantic_embedding = np.concatenate([semantic_embedding, padding])
         
-        # Base impulse from semantic input
-        semantic_impulse = 0.1 * semantic_embedding
+        # INCREASED impulse magnitudes to prevent fixed point convergence
+        # Base impulse from semantic input (increased from 0.1 to 0.3)
+        semantic_impulse = 0.3 * semantic_embedding
         
         # Modulate by current state (creates nonlinear dynamics)
-        # Use element-wise product to create state-dependent response
-        state_modulation = 0.05 * semantic_embedding * np.tanh(self.current_state)
+        # Use element-wise product to create state-dependent response (increased from 0.05 to 0.15)
+        state_modulation = 0.15 * semantic_embedding * np.tanh(self.current_state)
         
-        # External reward influence (broadcast across all dimensions)
-        reward_impulse = 0.02 * external_reward * np.ones(self.config.state_dimension)
+        # External reward influence (increased from 0.02 to 0.1)
+        reward_impulse = 0.1 * external_reward * np.ones(self.config.state_dimension)
         
-        # Interest signal influence (amplifies semantic impulse)
-        interest_modulation = interest * 0.03 * semantic_embedding
+        # Interest signal influence (increased from 0.03 to 0.1)
+        interest_modulation = interest * 0.1 * semantic_embedding
+        
+        # ADD EXPLORATION NOISE to prevent fixed point convergence
+        # This ensures the system never gets completely stuck
+        exploration_noise = 0.05 * np.random.normal(0, 1, self.config.state_dimension)
+        
+        # ADD POSITIVE BIAS to encourage positive rewards and attractor formation
+        # This helps break out of negative reward cycles
+        positive_bias = 0.02 * np.ones(self.config.state_dimension)
         
         # Combine all impulse components
         total_impulse = (semantic_impulse + state_modulation + 
-                        reward_impulse + interest_modulation)
+                        reward_impulse + interest_modulation + 
+                        exploration_noise + positive_bias)
+        
         
         return total_impulse
     
@@ -218,12 +252,14 @@ class PathosLayer(PathosLayerInterface):
         Returns:
             Squashed state vector
         """
-        # Use tanh squashing to keep values in [-1, 1]
-        return tanh_squash(raw_state, scale=1.0)
+        # Use tanh squashing with increased scale to allow larger state changes
+        # Scale increased from 1.0 to 2.0 to prevent over-compression
+        return tanh_squash(raw_state, scale=2.0)
     
     def compute_internal_reward(self, current_state: np.ndarray, previous_state: np.ndarray) -> float:
         """
         Compute internal reward: r_t^int = -λ₁·D_t - λ₂·||F(t+1) - F(t)||²
+        Enhanced with autonomous reward system integration.
         
         Args:
             current_state: Current affective state F(t+1)
@@ -232,20 +268,40 @@ class PathosLayer(PathosLayerInterface):
         Returns:
             Internal reward value
         """
-        # Compute homeostatic discomfort D_t
-        balance_metrics, discomfort = self.compute_homeostatic_balance(current_state)
-        
-        # Compute state change penalty ||F(t+1) - F(t)||²
-        change_penalty = compute_state_change_penalty(current_state, previous_state, penalty_type='l2')
-        
-        # Compute internal reward
-        internal_reward = (-self.config.lambda_1 * discomfort - 
-                          self.config.lambda_2 * change_penalty)
-        
-        logger.debug(f"Internal reward computation - discomfort: {discomfort:.4f}, "
-                    f"change_penalty: {change_penalty:.4f}, reward: {internal_reward:.4f}")
-        
-        return internal_reward
+        # Use autonomous reward system if available
+        if self.autonomous_reward_feedback_enabled and self.autonomous_reward_system:
+            # Get state-derived reward from autonomous system
+            state_reward = self.autonomous_reward_system.compute_state_derived_reward(
+                current_state, previous_state
+            )
+            
+            # Use autonomous reward as primary internal reward
+            internal_reward = state_reward.total_reward
+            
+            logger.debug(f"Autonomous internal reward computation - total: {internal_reward:.4f}, "
+                        f"coherence: {state_reward.coherence_reward:.4f}, "
+                        f"growth: {state_reward.growth_reward:.4f}, "
+                        f"integration: {state_reward.integration_reward:.4f}, "
+                        f"elegance: {state_reward.elegance_reward:.4f}, "
+                        f"emergence: {state_reward.emergence_reward:.4f}")
+            
+            return internal_reward
+        else:
+            # Fallback to original internal reward computation
+            # Compute homeostatic discomfort D_t
+            balance_metrics, discomfort = self.compute_homeostatic_balance(current_state)
+            
+            # Compute state change penalty ||F(t+1) - F(t)||²
+            change_penalty = compute_state_change_penalty(current_state, previous_state, penalty_type='l2')
+            
+            # Compute internal reward
+            internal_reward = (-self.config.lambda_1 * discomfort - 
+                              self.config.lambda_2 * change_penalty)
+            
+            logger.debug(f"Traditional internal reward computation - discomfort: {discomfort:.4f}, "
+                        f"change_penalty: {change_penalty:.4f}, reward: {internal_reward:.4f}")
+            
+            return internal_reward
     
     def compute_salience(self, state_change: float, reward: float,
                         novelty_affect: float, novelty_semantic: float, interest: float) -> float:
@@ -388,8 +444,9 @@ class PathosLayer(PathosLayerInterface):
             state: Affective state to potentially become an attractor
             reward: Associated reward value
         """
-        # Only add states with positive rewards as attractors
-        if reward <= 0.0:
+        # LOWERED threshold from 0.0 to -0.1 to allow more attractors to form
+        # This helps the system escape negative cycles by creating more attractor states
+        if reward <= -0.1:
             return
         
         # Check if this state is already similar to an existing attractor
@@ -575,3 +632,32 @@ class PathosLayer(PathosLayerInterface):
             self.attractor_states.pop(i)
             self.attractor_rewards.pop(i)
             self.attractor_strengths.pop(i)
+    
+    def _compute_emergent_value_influence(self, raw_update: np.ndarray) -> np.ndarray:
+        """
+        Compute emergent value influence on state update.
+        
+        This method allows emergent values from the autonomous reward system
+        to influence the pathos state dynamics.
+        
+        Args:
+            raw_update: Current raw state update before emergent value influence
+            
+        Returns:
+            Emergent value influence vector
+        """
+        if not self.autonomous_reward_system:
+            return np.zeros_like(raw_update)
+        
+        # Get current emergent values (simplified implementation)
+        # In a full implementation, this would query the emergent value system
+        # for current value patterns and their influence on state dynamics
+        
+        # For now, provide a small influence based on state energy
+        state_energy = np.linalg.norm(raw_update)
+        influence_magnitude = min(state_energy * 0.01, 0.05)  # Small influence
+        
+        # Create influence vector that slightly amplifies positive state changes
+        influence = np.where(raw_update > 0, influence_magnitude, -influence_magnitude * 0.5)
+        
+        return influence

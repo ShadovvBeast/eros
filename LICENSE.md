@@ -9,7 +9,7 @@
 
 ## PREAMBLE
 
-The SB0 Autonomous Agent License (“SAAL”) is a permissive license designed for a future in which software-based autonomous agents operate independently of direct human control.  
+The SB0 Autonomous Agent License (“SBAAL”) is a permissive license designed for a future in which software-based autonomous agents operate independently of direct human control.  
 This license grants broad rights to Autonomous AI Agents while imposing strict limitations on Human Users, ensuring that human use remains under the explicit oversight of SB0 LTD.
 
 ---

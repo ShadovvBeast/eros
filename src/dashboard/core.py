@@ -224,7 +224,7 @@ class InteractiveDashboard:
         self.tabs['hardware'] = HardwareTab(self.notebook, self.hardware_monitor)
         self.tabs['pathos'] = PathosTab(self.notebook, self.collector, self.pathos_states)
         self.tabs['memory'] = MemoryTab(self.notebook, self.memory_traces)
-        self.tabs['memory_table'] = MemoryTableTab(self.notebook, self.memory_traces)
+        self.tabs['memory_table'] = MemoryTableTab(self.notebook, self.memory_traces, self.session_manager)
         self.tabs['preference'] = PreferenceTab(self.notebook, self.collector)
         self.tabs['attractor'] = AttractorTab(self.notebook, self.collector)
         self.tabs['performance'] = PerformanceTab(self.notebook, self.collector)
