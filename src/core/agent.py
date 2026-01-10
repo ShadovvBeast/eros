@@ -55,6 +55,12 @@ class AutonomousAgent:
         self.tools = tools
         self.autonomous_reward_system = autonomous_reward_system
         
+        # Integrate autonomous reward system with layers that need it
+        if autonomous_reward_system:
+            self.pathos.set_autonomous_reward_system(autonomous_reward_system)
+            self.logos.set_autonomous_reward_system(autonomous_reward_system)
+            logger.info("Autonomous reward system integrated with Pathos and Logos layers")
+        
         # Register tool result callbacks for layer integration
         self.tools.register_result_callback(self._handle_tool_result)
         
@@ -175,78 +181,73 @@ class AutonomousAgent:
                 semantic_vector, external_reward, interest_signal, retrieved_memories
             )
             
-            # Compute autonomous state-derived rewards
-            if self.autonomous_reward_system:
-                # Use autonomous reward system for all reward computation
-                state_reward = self.autonomous_reward_system.compute_state_derived_reward(
-                    new_state, self.pathos.current_state
+            # AUTONOMOUS REWARD SYSTEM ONLY - NO FALLBACKS
+            if not self.autonomous_reward_system:
+                raise RuntimeError(
+                    f"Autonomous reward system not initialized! "
+                    f"The agent cycle requires the autonomous reward system as per specification. "
+                    f"Call initialize_layers() with a valid autonomous_reward_system parameter."
                 )
-                internal_reward = state_reward.total_reward
-                
-                # Generate intrinsic motivation
-                motivation_context = {
-                    'knowledge_gaps': self._identify_knowledge_gaps(),
-                    'skill_domains': self._extract_skill_domains(),
-                    'self_directed_actions': 1 if not tool_call else 0,
-                    'external_dependencies': 1 if tool_call else 0,
-                    'current_capabilities': self._assess_current_capabilities(),
-                    'learning_opportunities': self._identify_learning_opportunities()
-                }
-                intrinsic_motivation = self.autonomous_reward_system.generate_intrinsic_motivation(
-                    new_state, motivation_context
+            
+            # Use autonomous reward system for all reward computation
+            state_reward = self.autonomous_reward_system.compute_state_derived_reward(
+                new_state, self.pathos.current_state
+            )
+            internal_reward = state_reward.total_reward
+            
+            # Generate intrinsic motivation
+            motivation_context = {
+                'knowledge_gaps': self._identify_knowledge_gaps(),
+                'skill_domains': self._extract_skill_domains(),
+                'self_directed_actions': 1 if not tool_call else 0,
+                'external_dependencies': 1 if tool_call else 0,
+                'current_capabilities': self._assess_current_capabilities(),
+                'learning_opportunities': self._identify_learning_opportunities()
+            }
+            intrinsic_motivation = self.autonomous_reward_system.generate_intrinsic_motivation(
+                new_state, motivation_context
+            )
+            
+            # Assess world interaction value if tool was used
+            if tool_result:
+                world_interaction_result = self.autonomous_reward_system.assess_world_interaction_value(
+                    tool_result, new_state
                 )
-                
-                # Assess world interaction value if tool was used
-                if tool_result:
-                    world_interaction_result = self.autonomous_reward_system.assess_world_interaction_value(
-                        tool_result, new_state
-                    )
-                    # Incorporate world interaction reward
-                    external_reward += world_interaction_result.total_reward
-                
-                # Update emergent values with experience
-                experience = Experience(
-                    state_before=self.pathos.current_state.copy(),
-                    state_after=new_state.copy(),
-                    action_taken=tool_call.tool_name if tool_call else 'internal_processing',
-                    reward_received=internal_reward + external_reward,
-                    semantic_context=semantic_vector.semantic_category,
-                    timestamp=datetime.now()
-                )
-                self.autonomous_reward_system.update_emergent_values(experience, internal_reward + external_reward)
-                
-                # Compute cross-layer synergy
-                synergy_bonus = self.autonomous_reward_system.compute_cross_layer_synergy(
-                    self.logos, new_state, retrieved_memories
-                )
-                internal_reward += synergy_bonus
-                
-                logger.debug(f"Cycle {self.cycle_count} - Autonomous rewards", 
-                            state_reward_total=state_reward.total_reward,
-                            coherence=state_reward.coherence_reward,
-                            growth=state_reward.growth_reward,
-                            integration=state_reward.integration_reward,
-                            elegance=state_reward.elegance_reward,
-                            emergence=state_reward.emergence_reward,
-                            intrinsic_motivation=intrinsic_motivation.combined_motivation,
-                            synergy_bonus=synergy_bonus)
-            else:
-                # Fallback to original internal reward computation
-                internal_reward = self.pathos.compute_internal_reward(
-                    new_state, self.pathos.current_state
-                )
+                # Incorporate world interaction reward
+                external_reward += world_interaction_result.total_reward
+            
+            # Update emergent values with experience
+            experience = Experience(
+                state_before=self.pathos.current_state.copy(),
+                state_after=new_state.copy(),
+                action_taken=tool_call.tool_name if tool_call else 'internal_processing',
+                reward_received=internal_reward + external_reward,
+                context={'semantic_category': semantic_vector.semantic_category},
+                timestamp=datetime.now()
+            )
+            self.autonomous_reward_system.update_emergent_values(experience, internal_reward + external_reward)
+            
+            # Compute cross-layer synergy
+            synergy_bonus = self.autonomous_reward_system.compute_cross_layer_synergy(
+                self.logos, new_state, retrieved_memories
+            )
+            internal_reward += synergy_bonus
+            
+            logger.debug(f"Cycle {self.cycle_count} - Autonomous rewards", 
+                        state_reward_total=state_reward.total_reward,
+                        coherence=state_reward.coherence_reward,
+                        growth=state_reward.growth_reward,
+                        integration=state_reward.integration_reward,
+                        elegance=state_reward.elegance_reward,
+                        emergence=state_reward.emergence_reward,
+                        intrinsic_motivation=intrinsic_motivation.combined_motivation,
+                        synergy_bonus=synergy_bonus)
             
             # Update preference learning with autonomous signals
             total_reward = internal_reward + external_reward
             
-            # Enhanced preference learning with autonomous context
-            if self.autonomous_reward_system:
-                # Use autonomous reward components for more sophisticated preference learning
-                self.logos.update_preferences(total_reward, semantic_vector)
-                # Additional autonomous preference updates could be added here
-            else:
-                # Fallback to original preference learning
-                self.logos.update_preferences(total_reward, semantic_vector)
+            # Use autonomous reward components for sophisticated preference learning
+            self.logos.update_preferences(total_reward, semantic_vector)
             
             logger.debug(f"Cycle {self.cycle_count} - Pathos update", 
                         internal_reward=internal_reward,

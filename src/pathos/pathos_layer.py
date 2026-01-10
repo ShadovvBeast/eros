@@ -258,50 +258,49 @@ class PathosLayer(PathosLayerInterface):
     
     def compute_internal_reward(self, current_state: np.ndarray, previous_state: np.ndarray) -> float:
         """
-        Compute internal reward: r_t^int = -λ₁·D_t - λ₂·||F(t+1) - F(t)||²
-        Enhanced with autonomous reward system integration.
+        Compute internal reward using ONLY the autonomous reward system.
+        
+        This method implements the state-derived reward computation as specified
+        in the autonomous logos-pathos agent specification. NO FALLBACKS.
         
         Args:
             current_state: Current affective state F(t+1)
             previous_state: Previous affective state F(t)
             
         Returns:
-            Internal reward value
+            Internal reward value from autonomous reward system
         """
-        # Use autonomous reward system if available
-        if self.autonomous_reward_feedback_enabled and self.autonomous_reward_system:
-            # Get state-derived reward from autonomous system
-            state_reward = self.autonomous_reward_system.compute_state_derived_reward(
-                current_state, previous_state
+        # AUTONOMOUS REWARD SYSTEM ONLY - NO FALLBACKS
+        if not self.autonomous_reward_feedback_enabled or not self.autonomous_reward_system:
+            raise RuntimeError(
+                f"Autonomous reward system not properly initialized! "
+                f"autonomous_reward_feedback_enabled={self.autonomous_reward_feedback_enabled}, "
+                f"autonomous_reward_system={self.autonomous_reward_system is not None}. "
+                f"The system must use ONLY autonomous rewards as per specification."
             )
-            
-            # Use autonomous reward as primary internal reward
-            internal_reward = state_reward.total_reward
-            
-            logger.debug(f"Autonomous internal reward computation - total: {internal_reward:.4f}, "
-                        f"coherence: {state_reward.coherence_reward:.4f}, "
-                        f"growth: {state_reward.growth_reward:.4f}, "
-                        f"integration: {state_reward.integration_reward:.4f}, "
-                        f"elegance: {state_reward.elegance_reward:.4f}, "
-                        f"emergence: {state_reward.emergence_reward:.4f}")
-            
-            return internal_reward
-        else:
-            # Fallback to original internal reward computation
-            # Compute homeostatic discomfort D_t
-            balance_metrics, discomfort = self.compute_homeostatic_balance(current_state)
-            
-            # Compute state change penalty ||F(t+1) - F(t)||²
-            change_penalty = compute_state_change_penalty(current_state, previous_state, penalty_type='l2')
-            
-            # Compute internal reward
-            internal_reward = (-self.config.lambda_1 * discomfort - 
-                              self.config.lambda_2 * change_penalty)
-            
-            logger.debug(f"Traditional internal reward computation - discomfort: {discomfort:.4f}, "
-                        f"change_penalty: {change_penalty:.4f}, reward: {internal_reward:.4f}")
-            
-            return internal_reward
+        
+        # Get state-derived reward from autonomous system
+        state_reward = self.autonomous_reward_system.compute_state_derived_reward(
+            current_state, previous_state
+        )
+        
+        # Use autonomous reward as primary internal reward
+        internal_reward = state_reward.total_reward
+        
+        logger.debug(f"Autonomous internal reward computation - total: {internal_reward:.4f}, "
+                    f"coherence: {state_reward.coherence_reward:.4f}, "
+                    f"growth: {state_reward.growth_reward:.4f}, "
+                    f"integration: {state_reward.integration_reward:.4f}, "
+                    f"elegance: {state_reward.elegance_reward:.4f}, "
+                    f"emergence: {state_reward.emergence_reward:.4f}")
+        
+        # TEMPORARY DEBUG: Log component sum to verify positive bias application
+        component_sum = (state_reward.coherence_reward + state_reward.growth_reward + 
+                       state_reward.integration_reward + state_reward.elegance_reward + 
+                       state_reward.emergence_reward)
+        logger.info(f"🔍 REWARD DEBUG - Component sum: {component_sum:.4f}, Total: {internal_reward:.4f}, Bias applied: {internal_reward - component_sum:.4f}")
+        
+        return internal_reward
     
     def compute_salience(self, state_change: float, reward: float,
                         novelty_affect: float, novelty_semantic: float, interest: float) -> float:

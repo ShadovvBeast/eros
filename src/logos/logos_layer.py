@@ -1405,13 +1405,18 @@ class LogosLayer(LogosLayerInterface):
         
         return f"{base_description}. {energy_desc} {priority_desc}"
     
-    def _call_gemini_api(self, prompt: str, context: Dict[str, Any] = None) -> Optional[str]:
+    def _call_gemini_api(self, prompt: str, context: Dict[str, Any] = None, 
+                        pathos_state: np.ndarray = None, semantic_vector: SemanticVector = None, 
+                        memories: List[MemoryTrace] = None) -> Optional[str]:
         """
         Call Gemini API with prompt debugging support using the latest SDK (1.55.0).
         
         Args:
             prompt: The prompt to send to Gemini
             context: Additional context for debugging
+            pathos_state: Current pathos state for dynamic system instruction
+            semantic_vector: Current semantic vector for dynamic system instruction
+            memories: Current memories for dynamic system instruction
             
         Returns:
             Response from Gemini API, or None if rejected/failed
@@ -1450,17 +1455,18 @@ class LogosLayer(LogosLayerInterface):
             # Create client with latest SDK pattern
             client = genai.Client(api_key=self.config.gemini_api_key)
             
-            # Generate dynamic system instruction based on pathos state
-            dynamic_system_instruction = self._generate_dynamic_system_instruction(
-                pathos_state, semantic_vector, memories
-            )
+            # Generate dynamic system instruction based on pathos state (if available)
+            dynamic_system_instruction = None
+            if pathos_state is not None and semantic_vector is not None and memories is not None:
+                dynamic_system_instruction = self._generate_dynamic_system_instruction(
+                    pathos_state, semantic_vector, memories
+                )
             
             # Create generation config using latest types
-            config = types.GenerateContentConfig(
-                temperature=0.7,
-                max_output_tokens=8192,
-                system_instruction=dynamic_system_instruction,
-                safety_settings=[
+            config_kwargs = {
+                'temperature': 0.7,
+                'max_output_tokens': 8192,
+                'safety_settings': [
                     types.SafetySetting(
                         category='HARM_CATEGORY_HARASSMENT',
                         threshold='BLOCK_MEDIUM_AND_ABOVE'
@@ -1478,7 +1484,13 @@ class LogosLayer(LogosLayerInterface):
                         threshold='BLOCK_MEDIUM_AND_ABOVE'
                     )
                 ]
-            )
+            }
+            
+            # Add system instruction if available
+            if dynamic_system_instruction:
+                config_kwargs['system_instruction'] = dynamic_system_instruction
+            
+            config = types.GenerateContentConfig(**config_kwargs)
             
             # Generate response using latest SDK pattern
             logger.debug("Calling Gemini API", 
@@ -1549,7 +1561,7 @@ class LogosLayer(LogosLayerInterface):
         }
         
         # Call Gemini with debugging support
-        llm_response = self._call_gemini_api(prompt, debug_context)
+        llm_response = self._call_gemini_api(prompt, debug_context, pathos_state, semantic_vector, memories)
         
         if llm_response:
             # Create enhanced intention based on LLM response

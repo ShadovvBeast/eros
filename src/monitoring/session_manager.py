@@ -406,6 +406,7 @@ class SessionManager:
             from src.memory.memory_system import ConcreteMemorySystem
             from src.ethos.ethos_framework import ConcreteEthosFramework
             from src.tools.tool_layer import ToolLayer
+            from src.autonomous_reward.factory import create_autonomous_reward_system
             
             # Create layer configurations
             logos_config = self.agent.config.logos
@@ -421,10 +422,14 @@ class SessionManager:
             ethos = ConcreteEthosFramework(ethos_config, pathos)
             tools = ToolLayer(tool_config, ethos)
             
-            # Initialize the agent with all layers
-            self.agent.initialize_layers(logos, pathos, memory, ethos, tools)
+            # Create autonomous reward system
+            autonomous_reward_system = create_autonomous_reward_system(self.agent.config)
+            
+            # Initialize the agent with all layers INCLUDING autonomous reward system
+            self.agent.initialize_layers(logos, pathos, memory, ethos, tools, autonomous_reward_system)
             
             print("✅ All agent layers initialized successfully")
+            print("✅ Autonomous reward system integrated")
             
         except Exception as e:
             print(f"❌ Failed to initialize agent layers: {e}")

@@ -331,15 +331,11 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             return intrinsic_motivation
             
         except Exception as e:
-            logger.error(f"Critical error in intrinsic motivation generation: {e}")
-            
-            # Return fallback motivation
-            fallback_motivation = self.error_handler.fallback_intrinsic_motivation
-            self.motivation_history.append(fallback_motivation)
-            if len(self.motivation_history) > self.max_buffer_size:
-                self.motivation_history.pop(0)
-            
-            return fallback_motivation
+            # NO FALLBACK! Let the error propagate to expose initialization issues
+            logger.error(f"CRITICAL ERROR in intrinsic motivation generation: {e}")
+            logger.error(f"intrinsic_motivation_engine: {self.intrinsic_motivation_engine is not None}")
+            logger.error(f"This indicates the autonomous reward system was not properly initialized!")
+            raise RuntimeError(f"Autonomous reward system failure in intrinsic motivation: {e}") from e
     
     def assess_world_interaction_value(self, action_result: ToolResult, 
                                      state: np.ndarray) -> WorldInteractionResult:
@@ -483,16 +479,11 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             return synergy_bonus
             
         except Exception as e:
-            logger.error(f"Critical error in cross-layer synergy computation: {e}")
-            
-            # Handle integration failure
-            failed_components = ['cross_layer_synergy']
-            error_details = {'exception': str(e), 'layers': ['logos', 'pathos', 'memory']}
-            fallback_results = self.error_handler.handle_integration_failure(
-                failed_components, error_details
-            )
-            
-            return fallback_results.get('cross_layer_synergy', 0.1)
+            # NO FALLBACK! Let the error propagate to expose initialization issues
+            logger.error(f"CRITICAL ERROR in cross-layer synergy computation: {e}")
+            logger.error(f"cross_layer_synergy: {self.cross_layer_synergy is not None}")
+            logger.error(f"This indicates the autonomous reward system was not properly initialized!")
+            raise RuntimeError(f"Autonomous reward system failure in cross-layer synergy: {e}") from e
     
     def get_current_learning_state(self) -> Optional[LearningState]:
         """

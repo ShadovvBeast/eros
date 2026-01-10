@@ -1,0 +1,190 @@
+{
+  "summary": {
+    "total_runtime": 5.079692,
+    "total_cycles": 30,
+    "successful_cycles": 30,
+    "average_cycle_time": 0.06881953080495198
+  },
+  "detailed_metrics": [
+    {
+      "cycle": 1,
+      "duration": 0.0036695003509521484,
+      "timestamp": "2026-01-10T08:39:51.538951",
+      "success": true
+    },
+    {
+      "cycle": 2,
+      "duration": 0.00850987434387207,
+      "timestamp": "2026-01-10T08:39:51.649397",
+      "success": true
+    },
+    {
+      "cycle": 3,
+      "duration": 0.003951072692871094,
+      "timestamp": "2026-01-10T08:39:51.753844",
+      "success": true
+    },
+    {
+      "cycle": 4,
+      "duration": 1.5583789348602295,
+      "timestamp": "2026-01-10T08:39:53.412577",
+      "success": true
+    },
+    {
+      "cycle": 5,
+      "duration": 0.01566791534423828,
+      "timestamp": "2026-01-10T08:39:53.528407",
+      "success": true
+    },
+    {
+      "cycle": 6,
+      "duration": 0.015801668167114258,
+      "timestamp": "2026-01-10T08:39:53.644612",
+      "success": true
+    },
+    {
+      "cycle": 7,
+      "duration": 0.016681909561157227,
+      "timestamp": "2026-01-10T08:39:53.761463",
+      "success": true
+    },
+    {
+      "cycle": 8,
+      "duration": 0.017240524291992188,
+      "timestamp": "2026-01-10T08:39:53.879211",
+      "success": true
+    },
+    {
+      "cycle": 9,
+      "duration": 0.0180356502532959,
+      "timestamp": "2026-01-10T08:39:53.997643",
+      "success": true
+    },
+    {
+      "cycle": 10,
+      "duration": 0.020167827606201172,
+      "timestamp": "2026-01-10T08:39:54.118175",
+      "success": true
+    },
+    {
+      "cycle": 11,
+      "duration": 0.017569303512573242,
+      "timestamp": "2026-01-10T08:39:54.236430",
+      "success": true
+    },
+    {
+      "cycle": 12,
+      "duration": 0.019366025924682617,
+      "timestamp": "2026-01-10T08:39:54.356198",
+      "success": true
+    },
+    {
+      "cycle": 13,
+      "duration": 0.02106761932373047,
+      "timestamp": "2026-01-10T08:39:54.477724",
+      "success": true
+    },
+    {
+      "cycle": 14,
+      "duration": 0.02208852767944336,
+      "timestamp": "2026-01-10T08:39:54.600142",
+      "success": true
+    },
+    {
+      "cycle": 15,
+      "duration": 0.016222000122070312,
+      "timestamp": "2026-01-10T08:39:54.716822",
+      "success": true
+    },
+    {
+      "cycle": 16,
+      "duration": 0.016632080078125,
+      "timestamp": "2026-01-10T08:39:54.833825",
+      "success": true
+    },
+    {
+      "cycle": 17,
+      "duration": 0.01840662956237793,
+      "timestamp": "2026-01-10T08:39:54.952561",
+      "success": true
+    },
+    {
+      "cycle": 18,
+      "duration": 0.01911640167236328,
+      "timestamp": "2026-01-10T08:39:55.071946",
+      "success": true
+    },
+    {
+      "cycle": 19,
+      "duration": 0.017962217330932617,
+      "timestamp": "2026-01-10T08:39:55.190446",
+      "success": true
+    },
+    {
+      "cycle": 20,
+      "duration": 0.02169179916381836,
+      "timestamp": "2026-01-10T08:39:55.312524",
+      "success": true
+    },
+    {
+      "cycle": 21,
+      "duration": 0.019881486892700195,
+      "timestamp": "2026-01-10T08:39:55.433033",
+      "success": true
+    },
+    {
+      "cycle": 22,
+      "duration": 0.020239830017089844,
+      "timestamp": "2026-01-10T08:39:55.553567",
+      "success": true
+    },
+    {
+      "cycle": 23,
+      "duration": 0.021338224411010742,
+      "timestamp": "2026-01-10T08:39:55.675379",
+      "success": true
+    },
+    {
+      "cycle": 24,
+      "duration": 0.022734642028808594,
+      "timestamp": "2026-01-10T08:39:55.798487",
+      "success": true
+    },
+    {
+      "cycle": 25,
+      "duration": 0.018068790435791016,
+      "timestamp": "2026-01-10T08:39:55.916907",
+      "success": true
+    },
+    {
+      "cycle": 26,
+      "duration": 0.017432689666748047,
+      "timestamp": "2026-01-10T08:39:56.034760",
+      "success": true
+    },
+    {
+      "cycle": 27,
+      "duration": 0.020938873291015625,
+      "timestamp": "2026-01-10T08:39:56.156179",
+      "success": true
+    },
+    {
+      "cycle": 28,
+      "duration": 0.019130229949951172,
+      "timestamp": "2026-01-10T08:39:56.275481",
+      "success": true
+    },
+    {
+      "cycle": 29,
+      "duration": 0.01842045783996582,
+      "timestamp": "2026-01-10T08:39:56.394475",
+      "success": true
+    },
+    {
+      "cycle": 30,
+      "duration": 0.0181732177734375,
+      "timestamp": "2026-01-10T08:39:56.512835",
+      "success": true
+    }
+  ]
+}

@@ -88,6 +88,7 @@ class UltimateAutonomousAgent:
         from ..memory.memory_system import ConcreteMemorySystem
         from ..ethos.ethos_framework import ConcreteEthosFramework
         from ..tools.tool_layer import ToolLayer
+        from ..autonomous_reward.factory import create_autonomous_reward_system
         
         logos = LogosLayer(self.config.logos)
         pathos = PathosLayer(self.config.pathos)
@@ -95,12 +96,16 @@ class UltimateAutonomousAgent:
         ethos = ConcreteEthosFramework(self.config.ethos)
         tools = ToolLayer(self.config.tools)
         
-        self.agent.initialize_layers(logos, pathos, memory, ethos, tools)
+        # Create autonomous reward system
+        autonomous_reward_system = create_autonomous_reward_system(self.config)
+        
+        self.agent.initialize_layers(logos, pathos, memory, ethos, tools, autonomous_reward_system)
         
         # Initialize visualizers
         self._initialize_visualizers()
         
         print("✅ Ultimate agent initialized successfully")
+        print("✅ Autonomous reward system integrated")
     
     def _initialize_visualizers(self):
         """Initialize visualization components."""

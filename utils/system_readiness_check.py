@@ -62,6 +62,7 @@ def check_system_readiness():
         from src.memory.memory_system import ConcreteMemorySystem
         from src.ethos.ethos_framework import ConcreteEthosFramework
         from src.tools.tool_layer import ToolLayer
+        from src.autonomous_reward.factory import create_autonomous_reward_system
         
         logos = LogosLayer(agent_config.logos)
         pathos = PathosLayer(agent_config.pathos)
@@ -69,8 +70,12 @@ def check_system_readiness():
         ethos = ConcreteEthosFramework(agent_config.ethos, pathos)
         tools = ToolLayer(agent_config.tools, ethos)
         
-        agent.initialize_layers(logos, pathos, memory, ethos, tools)
+        # Create autonomous reward system
+        autonomous_reward_system = create_autonomous_reward_system(agent_config)
+        
+        agent.initialize_layers(logos, pathos, memory, ethos, tools, autonomous_reward_system)
         print("   ✅ All agent layers initialized successfully")
+        print("   ✅ Autonomous reward system integrated")
         checks_passed += 1
     except Exception as e:
         print(f"   ❌ Agent initialization failed: {e}")

@@ -1,0 +1,304 @@
+{
+  "summary": {
+    "total_runtime": 6.398988,
+    "total_cycles": 42,
+    "successful_cycles": 0,
+    "average_cycle_time": 0.05258777028038388
+  },
+  "detailed_metrics": [
+    {
+      "cycle": 1,
+      "duration": 0.00168609619140625,
+      "timestamp": "2026-01-10T08:38:38.811857",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.0027742385864257812,
+      "timestamp": "2026-01-10T08:38:38.915059",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.002861499786376953,
+      "timestamp": "2026-01-10T08:38:39.018090",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 1.8452541828155518,
+      "timestamp": "2026-01-10T08:38:40.963863",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.010057687759399414,
+      "timestamp": "2026-01-10T08:38:41.074209",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008751869201660156,
+      "timestamp": "2026-01-10T08:38:41.183210",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008949041366577148,
+      "timestamp": "2026-01-10T08:38:41.292361",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.00832986831665039,
+      "timestamp": "2026-01-10T08:38:41.400835",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009081125259399414,
+      "timestamp": "2026-01-10T08:38:41.510450",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009248018264770508,
+      "timestamp": "2026-01-10T08:38:41.620194",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009558677673339844,
+      "timestamp": "2026-01-10T08:38:41.730329",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.00870513916015625,
+      "timestamp": "2026-01-10T08:38:41.839426",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008926153182983398,
+      "timestamp": "2026-01-10T08:38:41.948452",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008681297302246094,
+      "timestamp": "2026-01-10T08:38:42.057516",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.011272192001342773,
+      "timestamp": "2026-01-10T08:38:42.169777",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009123086929321289,
+      "timestamp": "2026-01-10T08:38:42.279402",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.00983285903930664,
+      "timestamp": "2026-01-10T08:38:42.389433",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009734153747558594,
+      "timestamp": "2026-01-10T08:38:42.499439",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.011477470397949219,
+      "timestamp": "2026-01-10T08:38:42.611476",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008910179138183594,
+      "timestamp": "2026-01-10T08:38:42.720753",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.011343717575073242,
+      "timestamp": "2026-01-10T08:38:42.832530",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009603738784790039,
+      "timestamp": "2026-01-10T08:38:42.942453",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009594202041625977,
+      "timestamp": "2026-01-10T08:38:43.052296",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009238958358764648,
+      "timestamp": "2026-01-10T08:38:43.161864",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009213685989379883,
+      "timestamp": "2026-01-10T08:38:43.271510",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009044885635375977,
+      "timestamp": "2026-01-10T08:38:43.380696",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.010277509689331055,
+      "timestamp": "2026-01-10T08:38:43.491368",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008979320526123047,
+      "timestamp": "2026-01-10T08:38:43.600814",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008699893951416016,
+      "timestamp": "2026-01-10T08:38:43.709803",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009184837341308594,
+      "timestamp": "2026-01-10T08:38:43.819427",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009873151779174805,
+      "timestamp": "2026-01-10T08:38:43.929957",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009177684783935547,
+      "timestamp": "2026-01-10T08:38:44.039291",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009323596954345703,
+      "timestamp": "2026-01-10T08:38:44.148816",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.00928640365600586,
+      "timestamp": "2026-01-10T08:38:44.258716",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009109973907470703,
+      "timestamp": "2026-01-10T08:38:44.368431",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009380340576171875,
+      "timestamp": "2026-01-10T08:38:44.478323",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009475946426391602,
+      "timestamp": "2026-01-10T08:38:44.588273",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008811235427856445,
+      "timestamp": "2026-01-10T08:38:44.697249",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008970975875854492,
+      "timestamp": "2026-01-10T08:38:44.806551",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.008737802505493164,
+      "timestamp": "2026-01-10T08:38:44.915372",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.009290456771850586,
+      "timestamp": "2026-01-10T08:38:45.024788",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    },
+    {
+      "cycle": 1,
+      "duration": 0.00885319709777832,
+      "timestamp": "2026-01-10T08:38:45.134056",
+      "success": false,
+      "error": "Experience.__init__() got an unexpected keyword argument 'semantic_context'"
+    }
+  ]
+}
