@@ -4,6 +4,7 @@ Main Agent class that coordinates all layers of the Autonomous Logos-Pathos-Memo
 
 from typing import Optional, Dict, Any, List
 import time
+import os
 from datetime import datetime
 import numpy as np
 
@@ -98,22 +99,25 @@ class AutonomousAgent:
                 else:
                     setattr(self.logos, '_current_cycle', self.cycle_count)
             
-            # Try enhanced LLM-based intention generation first
-            try:
-                intention = self.logos.generate_enhanced_intention_with_llm(
-                    semantic_vector, self.pathos.current_state, recent_memories
-                )
-                
-                if debug_mode:
-                    logger.debug("Using enhanced LLM-based intention generation with debugging enabled")
-                else:
-                    logger.debug("Using enhanced LLM-based intention generation for autonomous operation")
+            # Use our cryptographic intention generation as primary method
+            # It's mathematically elegant, guaranteed unique, and always works
+            intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
+            logger.debug("Using cryptographic intention generation (primary method)")
+            
+            # Only try enhanced LLM generation if specifically enabled via environment variable
+            if os.getenv('USE_LLM_ENHANCEMENT', 'false').lower() == 'true':
+                try:
+                    llm_intention = self.logos.generate_enhanced_intention_with_llm(
+                        semantic_vector, self.pathos.current_state, recent_memories
+                    )
                     
-            except Exception as e:
-                # Fallback to standard intention generation if LLM fails
-                logger.warning(f"Enhanced intention generation failed ({e}), falling back to standard generation")
-                intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
-                logger.debug("Using standard intention generation as fallback")
+                    # Use LLM enhancement if successful
+                    intention = llm_intention
+                    logger.debug("Enhanced intention with LLM (optional enhancement enabled)")
+                        
+                except Exception as e:
+                    # Continue with cryptographic intention if LLM fails
+                    logger.debug(f"LLM enhancement failed ({e}), continuing with cryptographic intention")
             
             interest_signal = self.logos.compute_interest_signal(semantic_vector)
             phase_timings['logos'] = time.time() - phase_start

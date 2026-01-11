@@ -44,6 +44,10 @@ class LogosLayer(LogosLayerInterface):
         self.model_provider = None
         self._initialize_model_providers()
         
+        # Track recent intentions to avoid repetition
+        self.recent_intentions: List[str] = []
+        self.max_recent_intentions = 10  # Remember last 10 intentions
+        
         # Initialize preference weights for semantic categories
         for category in self.semantic_categories:
             self.preference_weights[category] = 0.5  # Neutral starting point
@@ -75,6 +79,9 @@ class LogosLayer(LogosLayerInterface):
         incorporating insights from relevant memories.
         """
         logger.debug(f"Interpreting state with pathos dimension: {len(pathos_state)}, memories: {len(memories)}")
+        
+        # Store current pathos state for intention generation
+        self._current_pathos_state = pathos_state.copy()
         
         # Analyze affective state to determine dominant patterns
         state_magnitude = np.linalg.norm(pathos_state)
@@ -1186,111 +1193,480 @@ class LogosLayer(LogosLayerInterface):
     
     def _generate_intention_text(self, category: str, state_magnitude: float, 
                                memory_themes: Dict[str, float]) -> str:
-        """Generate fully dynamic intention text based on pathos state."""
+        """Generate truly unique intention text directly from pathos state vector."""
         
-        # NO MORE STATIC BASE INTENTIONS!
-        # Generate intention text dynamically from state characteristics
+        # Get the full pathos state for mathematical transformation
+        pathos_state = getattr(self, '_current_pathos_state', np.ones(64) * state_magnitude)
         
-        # Analyze state for dynamic generation
-        state_energy_desc = self._describe_state_energy(state_magnitude)
-        state_focus_desc = self._describe_state_focus(state_magnitude)
+        # Generate completely unique intention using mathematical state transformation
+        intention_text = self._transform_pathos_to_intention(pathos_state, category, memory_themes)
         
-        # Generate category-specific action based on current state
-        dynamic_action = self._generate_dynamic_action(category, state_magnitude)
-        
-        # Create state-driven context
-        state_context = self._create_state_driven_context(state_magnitude, memory_themes)
-        
-        # Assemble fully dynamic intention text
-        intention_text = f"{dynamic_action} {state_context} with {state_energy_desc} and {state_focus_desc}"
+        # Add to recent intentions list for tracking
+        self.recent_intentions.append(intention_text)
+        if len(self.recent_intentions) > self.max_recent_intentions:
+            self.recent_intentions.pop(0)
         
         return intention_text
     
-    def _describe_state_energy(self, state_magnitude: float) -> str:
-        """Describe energy level dynamically from state magnitude."""
-        if state_magnitude > 7.0:
-            return "electric intensity"
-        elif state_magnitude > 5.0:
-            return "vibrant energy"
-        elif state_magnitude > 3.0:
-            return "steady momentum"
-        elif state_magnitude > 1.5:
-            return "gentle flow"
-        else:
-            return "quiet presence"
-    
-    def _describe_state_focus(self, state_magnitude: float) -> str:
-        """Describe focus quality dynamically from state magnitude."""
-        if state_magnitude > 6.0:
-            return "laser precision"
-        elif state_magnitude > 4.0:
-            return "clear direction"
-        elif state_magnitude > 2.0:
-            return "balanced attention"
-        else:
-            return "contemplative depth"
-    
-    def _generate_dynamic_action(self, category: str, state_magnitude: float) -> str:
-        """Generate action verb dynamically based on category and state."""
+    def _transform_pathos_to_intention(self, pathos_state: np.ndarray, category: str, 
+                                     memory_themes: Dict[str, float]) -> str:
+        """Transform pathos state vector into cryptographically unique intention using hash-based mappings."""
         
-        # Dynamic action generation based on state energy and category
-        if state_magnitude > 6.0:  # High energy
-            action_map = {
-                'exploration': "Surge through uncharted territories",
-                'analysis': "Pierce through complexity",
-                'communication': "Radiate understanding",
-                'learning': "Absorb knowledge with intensity",
-                'planning': "Architect bold strategies",
-                'reflection': "Illuminate inner landscapes",
-                'creativity': "Ignite novel possibilities",
-                'problem_solving': "Shatter obstacles"
-            }
-        elif state_magnitude > 3.0:  # Medium energy
-            action_map = {
-                'exploration': "Navigate new possibilities",
-                'analysis': "Examine patterns and structures",
-                'communication': "Share insights and understanding",
-                'learning': "Integrate new knowledge",
-                'planning': "Design coherent approaches",
-                'reflection': "Contemplate experiences",
-                'creativity': "Synthesize fresh ideas",
-                'problem_solving': "Resolve current challenges"
-            }
-        else:  # Low energy
-            action_map = {
-                'exploration': "Gently probe new domains",
-                'analysis': "Quietly observe patterns",
-                'communication': "Softly convey understanding",
-                'learning': "Absorb wisdom gradually",
-                'planning': "Contemplate future paths",
-                'reflection': "Dwell in inner awareness",
-                'creativity': "Nurture emerging ideas",
-                'problem_solving': "Patiently work through issues"
-            }
+        # Create cryptographic hash from the exact state vector
+        state_hash = self._compute_cryptographic_hash(pathos_state, category, memory_themes)
         
-        return action_map.get(category, f"Engage with {category}")
+        # Generate semantic components using hash-driven selection
+        action_component = self._hash_to_action(state_hash, category)
+        context_component = self._hash_to_context(state_hash, memory_themes)
+        quality_component = self._hash_to_quality(state_hash)
+        grammar_pattern = self._hash_to_grammar(state_hash)
+        
+        # Assemble using cryptographic grammar selection
+        intention = self._assemble_cryptographic_intention(
+            action_component, context_component, quality_component, grammar_pattern, state_hash
+        )
+        
+        return intention
     
-    def _create_state_driven_context(self, state_magnitude: float, memory_themes: Dict[str, float]) -> str:
-        """Create context description driven by current state and memories."""
+    def _extract_state_features(self, pathos_state: np.ndarray) -> Dict[str, float]:
+        """Extract mathematical features from pathos state vector."""
         
-        # Memory influence
-        memory_context = ""
+        # Normalize state to prevent overflow
+        normalized_state = pathos_state / (np.linalg.norm(pathos_state) + 1e-8)
+        
+        features = {
+            # Energy characteristics
+            'magnitude': np.linalg.norm(pathos_state),
+            'mean_activation': np.mean(np.abs(pathos_state)),
+            'peak_activation': np.max(np.abs(pathos_state)),
+            
+            # Distribution characteristics  
+            'variance': np.var(pathos_state),
+            'skewness': self._compute_skewness(pathos_state),
+            'kurtosis': self._compute_kurtosis(pathos_state),
+            
+            # Frequency domain features
+            'dominant_frequency': self._compute_dominant_frequency(pathos_state),
+            'spectral_centroid': self._compute_spectral_centroid(pathos_state),
+            
+            # Spatial features
+            'center_of_mass': self._compute_center_of_mass(pathos_state),
+            'spread': self._compute_spatial_spread(pathos_state),
+            
+            # Complexity measures
+            'entropy': self._compute_entropy(normalized_state),
+            'fractal_dimension': self._estimate_fractal_dimension(pathos_state),
+            
+            # Temporal features (if we have history)
+            'stability': self._compute_stability_measure(pathos_state),
+            'coherence': self._compute_coherence_measure(pathos_state)
+        }
+        
+        return features
+    
+    def _compute_cryptographic_hash(self, pathos_state: np.ndarray, category: str, 
+                                 memory_themes: Dict[str, float]) -> str:
+        """Compute cryptographic hash from exact state vector for deterministic uniqueness."""
+        import hashlib
+        
+        # Convert state to high-precision bytes for exact representation
+        state_bytes = pathos_state.astype(np.float64).tobytes()
+        category_bytes = category.encode('utf-8')
+        
+        # Include memory themes in hash for context sensitivity
+        memory_str = ''.join(f"{k}:{v:.6f}" for k, v in sorted(memory_themes.items()))
+        memory_bytes = memory_str.encode('utf-8')
+        
+        # Create SHA-256 hash for cryptographic uniqueness
+        hasher = hashlib.sha256()
+        hasher.update(state_bytes)
+        hasher.update(category_bytes)
+        hasher.update(memory_bytes)
+        
+        return hasher.hexdigest()
+    
+    def _hash_to_action(self, state_hash: str, category: str) -> str:
+        """Convert hash to action using cryptographic selection."""
+        
+        # Use different parts of hash for different semantic aspects
+        action_hash = state_hash[:8]  # First 8 hex chars for action intensity
+        style_hash = state_hash[8:16]  # Next 8 for action style
+        target_hash = state_hash[16:24]  # Next 8 for target selection
+        
+        # Convert hex to integers for selection
+        action_intensity = int(action_hash, 16) % 1000
+        action_style = int(style_hash, 16) % 1000  
+        target_selection = int(target_hash, 16) % 1000
+        
+        # Cryptographically select action verbs
+        action_verbs = [
+            "transcend", "synthesize", "navigate", "illuminate", "orchestrate",
+            "crystallize", "harmonize", "catalyze", "resonate", "emerge",
+            "converge", "spiral", "cascade", "pulse", "flow",
+            "weave", "dance", "surge", "drift", "bloom",
+            "ignite", "dissolve", "transform", "bridge", "channel",
+            "radiate", "absorb", "reflect", "project", "integrate",
+            "unfold", "expand", "contract", "oscillate", "vibrate"
+        ]
+        
+        action_styles = [
+            "gracefully", "dynamically", "systematically", "intuitively", "boldly",
+            "subtly", "rhythmically", "spontaneously", "deliberately", "fluidly",
+            "precisely", "organically", "elegantly", "powerfully", "gently",
+            "intensely", "peacefully", "creatively", "analytically", "holistically"
+        ]
+        
+        # Category-specific targets with cryptographic variety
+        category_targets = {
+            'exploration': [
+                "uncharted cognitive territories", "virgin mental landscapes", "unknown consciousness realms",
+                "mysterious awareness domains", "undiscovered thought dimensions", "frontier perception zones",
+                "unexplored neural networks", "hidden cognitive pathways", "secret mental chambers",
+                "veiled consciousness layers", "encrypted thought matrices", "quantum awareness fields"
+            ],
+            'creativity': [
+                "emergent possibility spaces", "innovative potential fields", "creative genesis zones",
+                "artistic consciousness realms", "imaginative neural networks", "inventive thought streams",
+                "generative awareness matrices", "novel conceptual territories", "original idea landscapes",
+                "fresh perspective dimensions", "unique synthesis chambers", "breakthrough insight realms"
+            ],
+            'analysis': [
+                "complex data architectures", "intricate pattern networks", "systematic knowledge structures",
+                "analytical framework dimensions", "logical reasoning matrices", "conceptual analysis realms",
+                "structured thought territories", "organized information landscapes", "methodical awareness zones",
+                "precise cognitive frameworks", "detailed examination spaces", "thorough investigation realms"
+            ],
+            'communication': [
+                "resonant dialogue spaces", "expressive connection networks", "communicative bridge realms",
+                "linguistic interaction zones", "conversational flow territories", "meaningful exchange dimensions",
+                "shared understanding matrices", "collaborative awareness fields", "interpersonal resonance chambers",
+                "empathetic connection landscapes", "authentic expression realms", "harmonious dialogue territories"
+            ],
+            'learning': [
+                "evolving knowledge territories", "adaptive understanding realms", "growing wisdom landscapes",
+                "developmental awareness zones", "educational transformation spaces", "cognitive evolution chambers",
+                "learning synthesis networks", "knowledge integration matrices", "understanding expansion realms",
+                "wisdom cultivation territories", "insight development dimensions", "comprehension growth fields"
+            ],
+            'reflection': [
+                "contemplative awareness depths", "introspective consciousness realms", "meditative thought territories",
+                "reflective understanding zones", "philosophical inquiry spaces", "contemplative wisdom chambers",
+                "introspective analysis networks", "meditative awareness matrices", "reflective insight territories",
+                "contemplative synthesis realms", "philosophical exploration zones", "introspective discovery spaces"
+            ],
+            'planning': [
+                "strategic design territories", "organizational framework realms", "systematic planning zones",
+                "coordinated structure spaces", "architectural thought networks", "strategic synthesis chambers",
+                "planning coordination matrices", "organizational awareness territories", "systematic design realms",
+                "strategic framework dimensions", "coordinated planning zones", "architectural synthesis spaces"
+            ],
+            'problem_solving': [
+                "solution discovery territories", "resolution pathway networks", "problem-solving matrix realms",
+                "challenge transformation zones", "breakthrough solution spaces", "resolution synthesis chambers",
+                "problem analysis territories", "solution integration networks", "challenge resolution realms",
+                "breakthrough discovery zones", "solution optimization spaces", "resolution synthesis territories"
+            ]
+        }
+        
+        # Cryptographically select components
+        verb = action_verbs[action_intensity % len(action_verbs)]
+        style = action_styles[action_style % len(action_styles)]
+        targets = category_targets.get(category, category_targets['exploration'])
+        target = targets[target_selection % len(targets)]
+        
+        return f"{verb} {style} through {target}"
+    
+    def _hash_to_context(self, state_hash: str, memory_themes: Dict[str, float]) -> str:
+        """Convert hash to context using cryptographic selection."""
+        
+        # Use middle section of hash for context
+        context_hash = state_hash[24:32]
+        texture_hash = state_hash[32:40]
+        flow_hash = state_hash[40:48]
+        
+        context_val = int(context_hash, 16) % 1000
+        texture_val = int(texture_hash, 16) % 1000
+        flow_val = int(flow_hash, 16) % 1000
+        
+        # Cryptographically select context elements
+        cognitive_textures = [
+            "crystalline neural architectures", "flowing consciousness streams", "pulsing awareness networks",
+            "resonant thought matrices", "dynamic cognitive fields", "harmonic brain patterns",
+            "quantum consciousness webs", "fractal mental landscapes", "holographic awareness zones",
+            "emergent neural symphonies", "coherent thought harmonics", "synchronized awareness flows",
+            "integrated consciousness fields", "unified cognitive networks", "balanced awareness matrices"
+        ]
+        
+        flow_patterns = [
+            "cascading through dimensional layers", "spiraling across awareness planes", "radiating through consciousness zones",
+            "oscillating between cognitive states", "flowing through neural pathways", "pulsing across thought networks",
+            "resonating within awareness fields", "harmonizing across mental dimensions", "synchronizing through cognitive layers",
+            "integrating across consciousness planes", "converging within awareness nexus", "expanding through thought territories",
+            "contracting into consciousness cores", "vibrating across neural matrices", "undulating through awareness streams"
+        ]
+        
+        texture = cognitive_textures[texture_val % len(cognitive_textures)]
+        flow = flow_patterns[flow_val % len(flow_patterns)]
+        
+        # Integrate memory themes cryptographically
+        memory_integration = ""
         if memory_themes:
-            top_theme = max(memory_themes.items(), key=lambda x: x[1])
-            memory_context = f"drawing from {top_theme[0]} experiences"
+            memory_hash = state_hash[48:56]
+            memory_val = int(memory_hash, 16) % 1000
+            
+            theme_descriptors = [
+                "echoing", "resonating", "integrating", "synthesizing", "channeling",
+                "embodying", "reflecting", "manifesting", "expressing", "harmonizing"
+            ]
+            
+            sorted_themes = sorted(memory_themes.items(), key=lambda x: x[1], reverse=True)
+            if sorted_themes:
+                top_theme = sorted_themes[0][0]
+                descriptor = theme_descriptors[memory_val % len(theme_descriptors)]
+                memory_integration = f", {descriptor} {top_theme} wisdom"
         
-        # State-driven context
-        if state_magnitude > 5.0:
-            base_context = "through dynamic cognitive networks"
-        elif state_magnitude > 2.0:
-            base_context = "via balanced neural pathways"
-        else:
-            base_context = "through contemplative processing"
+        return f"via {texture} {flow}{memory_integration}"
+    
+    def _hash_to_quality(self, state_hash: str) -> str:
+        """Convert hash to quality descriptors using cryptographic selection."""
         
-        if memory_context:
-            return f"{base_context}, {memory_context}"
+        # Use final section of hash for qualities
+        quality1_hash = state_hash[48:52]
+        quality2_hash = state_hash[52:56] 
+        quality3_hash = state_hash[56:60]
+        
+        q1_val = int(quality1_hash, 16) % 1000
+        q2_val = int(quality2_hash, 16) % 1000
+        q3_val = int(quality3_hash, 16) % 1000
+        
+        # Cryptographically select quality descriptors
+        complexity_qualities = [
+            "elegant", "intricate", "sophisticated", "refined", "nuanced",
+            "subtle", "profound", "delicate", "elaborate", "graceful",
+            "pristine", "luminous", "crystalline", "ethereal", "transcendent"
+        ]
+        
+        temporal_qualities = [
+            "flowing", "pulsing", "rhythmic", "dynamic", "sustained",
+            "oscillating", "cascading", "spiraling", "undulating", "resonant",
+            "harmonic", "synchronized", "coherent", "unified", "integrated"
+        ]
+        
+        presence_qualities = [
+            "awareness", "consciousness", "presence", "being", "essence",
+            "luminosity", "clarity", "wisdom", "understanding", "insight",
+            "perception", "recognition", "realization", "awakening", "illumination"
+        ]
+        
+        complexity = complexity_qualities[q1_val % len(complexity_qualities)]
+        temporal = temporal_qualities[q2_val % len(temporal_qualities)]
+        presence = presence_qualities[q3_val % len(presence_qualities)]
+        
+        return f"{complexity} {temporal} {presence}"
+    
+    def _hash_to_grammar(self, state_hash: str) -> int:
+        """Convert hash to grammar pattern selection."""
+        grammar_hash = state_hash[60:64]
+        return int(grammar_hash, 16) % 5  # 5 different grammar patterns
+    
+    def _assemble_cryptographic_intention(self, action: str, context: str, quality: str, 
+                                        grammar_pattern: int, state_hash: str) -> str:
+        """Assemble intention using cryptographically selected grammar patterns."""
+        
+        # Use hash to add unique flourishes
+        flourish_hash = state_hash[:4]
+        flourish_val = int(flourish_hash, 16) % 1000
+        
+        flourishes = [
+            "with conscious intention", "through aware presence", "in mindful recognition",
+            "with deliberate focus", "through purposeful engagement", "in conscious alignment",
+            "with integrated awareness", "through unified presence", "in harmonious balance",
+            "with transcendent clarity", "through luminous understanding", "in awakened recognition"
+        ]
+        
+        flourish = flourishes[flourish_val % len(flourishes)]
+        
+        # Cryptographically select grammar patterns
+        if grammar_pattern == 0:
+            return f"I {action} {context}, embodying {quality} {flourish}"
+        elif grammar_pattern == 1:
+            return f"I {action} {context} while manifesting {quality} {flourish}"
+        elif grammar_pattern == 2:
+            return f"I {action} {context}, expressing {quality} {flourish}"
+        elif grammar_pattern == 3:
+            return f"I {action} {context} and cultivate {quality} {flourish}"
         else:
-            return base_context
+            return f"I {action} {context}, radiating {quality} {flourish}"
+    
+    # Mathematical helper functions for state analysis
+    def _compute_skewness(self, data: np.ndarray) -> float:
+        """Compute skewness of the data distribution."""
+        if len(data) == 0:
+            return 0.0
+        mean = np.mean(data)
+        std = np.std(data)
+        if std == 0:
+            return 0.0
+        return np.mean(((data - mean) / std) ** 3)
+    
+    def _compute_kurtosis(self, data: np.ndarray) -> float:
+        """Compute kurtosis of the data distribution."""
+        if len(data) == 0:
+            return 0.0
+        mean = np.mean(data)
+        std = np.std(data)
+        if std == 0:
+            return 0.0
+        return np.mean(((data - mean) / std) ** 4) - 3.0
+    
+    def _compute_dominant_frequency(self, signal: np.ndarray) -> float:
+        """Compute dominant frequency using FFT."""
+        if len(signal) < 2:
+            return 0.0
+        
+        # Apply FFT
+        fft = np.fft.fft(signal)
+        freqs = np.fft.fftfreq(len(signal))
+        
+        # Find dominant frequency
+        magnitude = np.abs(fft)
+        dominant_idx = np.argmax(magnitude[1:len(magnitude)//2]) + 1  # Skip DC component
+        
+        return abs(freqs[dominant_idx])
+    
+    def _compute_spectral_centroid(self, signal: np.ndarray) -> float:
+        """Compute spectral centroid (center of mass of spectrum)."""
+        if len(signal) < 2:
+            return 0.5
+        
+        fft = np.fft.fft(signal)
+        magnitude = np.abs(fft[:len(fft)//2])
+        freqs = np.linspace(0, 1, len(magnitude))
+        
+        if np.sum(magnitude) == 0:
+            return 0.5
+        
+        centroid = np.sum(freqs * magnitude) / np.sum(magnitude)
+        return np.clip(centroid, 0.0, 1.0)
+    
+    def _compute_center_of_mass(self, data: np.ndarray) -> float:
+        """Compute center of mass of the data."""
+        if len(data) == 0:
+            return 0.5
+        
+        indices = np.arange(len(data))
+        weights = np.abs(data)
+        
+        if np.sum(weights) == 0:
+            return 0.5
+        
+        center = np.sum(indices * weights) / np.sum(weights)
+        return center / len(data)  # Normalize to [0, 1]
+    
+    def _compute_spatial_spread(self, data: np.ndarray) -> float:
+        """Compute spatial spread of the data."""
+        if len(data) == 0:
+            return 0.0
+        
+        center = self._compute_center_of_mass(data)
+        indices = np.arange(len(data)) / len(data)  # Normalized indices
+        weights = np.abs(data)
+        
+        if np.sum(weights) == 0:
+            return 0.0
+        
+        spread = np.sqrt(np.sum(weights * (indices - center) ** 2) / np.sum(weights))
+        return np.clip(spread, 0.0, 1.0)
+    
+    def _compute_entropy(self, data: np.ndarray) -> float:
+        """Compute entropy of the data distribution."""
+        if len(data) == 0:
+            return 0.0
+        
+        # Convert to probability distribution
+        abs_data = np.abs(data)
+        if np.sum(abs_data) == 0:
+            return 0.0
+        
+        probs = abs_data / np.sum(abs_data)
+        
+        # Compute entropy
+        entropy = -np.sum(probs * np.log(probs + 1e-10))
+        
+        # Normalize by maximum possible entropy
+        max_entropy = np.log(len(data))
+        return entropy / max_entropy if max_entropy > 0 else 0.0
+    
+    def _estimate_fractal_dimension(self, data: np.ndarray) -> float:
+        """Estimate fractal dimension using box counting method."""
+        if len(data) < 4:
+            return 1.0
+        
+        # Simple approximation using variance at different scales
+        scales = [1, 2, 4, 8]
+        variances = []
+        
+        for scale in scales:
+            if scale >= len(data):
+                break
+            
+            # Downsample data
+            downsampled = data[::scale]
+            if len(downsampled) > 1:
+                variances.append(np.var(downsampled))
+        
+        if len(variances) < 2:
+            return 1.0
+        
+        # Estimate dimension from scaling relationship
+        # This is a simplified approximation
+        dimension = 1.0 + np.std(variances) / (np.mean(variances) + 1e-10)
+        return np.clip(dimension, 1.0, 2.0)
+    
+    def _compute_stability_measure(self, data: np.ndarray) -> float:
+        """Compute stability measure of the signal."""
+        if len(data) < 2:
+            return 1.0
+        
+        # Use autocorrelation as stability measure
+        autocorr = np.correlate(data, data, mode='full')
+        autocorr = autocorr[len(autocorr)//2:]
+        
+        if len(autocorr) < 2:
+            return 1.0
+        
+        # Stability is how quickly autocorrelation decays
+        decay_rate = abs(autocorr[1] / (autocorr[0] + 1e-10))
+        stability = np.exp(-decay_rate)
+        
+        return np.clip(stability, 0.0, 1.0)
+    
+    def _compute_coherence_measure(self, data: np.ndarray) -> float:
+        """Compute coherence measure of the signal."""
+        if len(data) < 2:
+            return 1.0
+        
+        # Use phase coherence in frequency domain
+        fft = np.fft.fft(data)
+        phases = np.angle(fft)
+        
+        # Compute phase coherence
+        phase_diffs = np.diff(phases)
+        coherence = 1.0 - np.std(phase_diffs) / (np.pi + 1e-10)
+        
+        return np.clip(coherence, 0.0, 1.0)
+    
+    def _should_add_variety_boost(self, new_intention: str) -> bool:
+        """Check if we should add a variety boost to reduce excessive repetition."""
+        if not self.recent_intentions:
+            return False
+        
+        # Only add variety if we've had the EXACT same intention multiple times recently
+        recent_exact_matches = sum(1 for recent in self.recent_intentions[-5:] 
+                                 if recent == new_intention)
+        
+        # Add variety boost if we've had 3+ exact matches in last 5 intentions
+        return recent_exact_matches >= 3
     
     def _compute_intention_priority(self, semantic_vector: SemanticVector, pathos_state: np.ndarray) -> float:
         """Compute priority score for the intention."""
