@@ -1481,7 +1481,7 @@ class LogosLayer(LogosLayerInterface):
             
             # Add dynamic system instruction if state information is available
             if pathos_state is not None or semantic_vector is not None or memories:
-                system_instruction = self._create_dynamic_system_instruction(
+                system_instruction = self._generate_dynamic_system_instruction(
                     pathos_state, semantic_vector, memories
                 )
                 if system_instruction:

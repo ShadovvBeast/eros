@@ -39,10 +39,17 @@ class ConfigManager:
         self.load_default_config()
     
     def load_default_config(self) -> AgentConfig:
-        """Load default configuration from environment."""
+        """Load default configuration, preferring saved profile over environment."""
         try:
+            # First try to load saved "default" profile
+            saved_config = self.load_config("default")
+            if saved_config:
+                self.logger.info("✅ Default configuration loaded from saved profile")
+                return saved_config
+            
+            # Fallback to environment if no saved profile exists
             self.current_config = AgentConfig.from_env()
-            self.logger.info("✅ Default configuration loaded from environment")
+            self.logger.info("✅ Default configuration loaded from environment (no saved profile found)")
             return self.current_config
         except Exception as e:
             self.logger.error(f"❌ Failed to load default configuration: {e}")
@@ -112,26 +119,58 @@ class ConfigManager:
     
     def _apply_config_dict(self, config: AgentConfig, config_dict: Dict[str, Any]):
         """Apply configuration dictionary to config object."""
-        # This is a simplified implementation
-        # In a full implementation, you'd recursively apply all nested values
-        
-        if 'pathos' in config_dict:
-            pathos_dict = config_dict['pathos']
-            if 'state_dimension' in pathos_dict:
-                config.pathos.state_dimension = pathos_dict['state_dimension']
-            if 'decay_factor' in pathos_dict:
-                config.pathos.decay_factor = pathos_dict['decay_factor']
-            if 'echo_strength' in pathos_dict:
-                config.pathos.echo_strength = pathos_dict['echo_strength']
-        
-        if 'logos' in config_dict:
-            logos_dict = config_dict['logos']
-            if 'gemini_api_key' in logos_dict:
-                config.logos.gemini_api_key = logos_dict['gemini_api_key']
-            if 'gemini_model' in logos_dict:
-                config.logos.gemini_model = logos_dict['gemini_model']
-        
-        # Add more sections as needed...
+        try:
+            # Apply Pathos configuration
+            if 'pathos' in config_dict:
+                pathos_dict = config_dict['pathos']
+                for key, value in pathos_dict.items():
+                    if hasattr(config.pathos, key):
+                        setattr(config.pathos, key, value)
+            
+            # Apply Ethos configuration
+            if 'ethos' in config_dict:
+                ethos_dict = config_dict['ethos']
+                for key, value in ethos_dict.items():
+                    if hasattr(config.ethos, key):
+                        setattr(config.ethos, key, value)
+            
+            # Apply Logos configuration (INCLUDING model_provider!)
+            if 'logos' in config_dict:
+                logos_dict = config_dict['logos']
+                for key, value in logos_dict.items():
+                    if hasattr(config.logos, key):
+                        setattr(config.logos, key, value)
+            
+            # Apply Memory configuration
+            if 'memory' in config_dict:
+                memory_dict = config_dict['memory']
+                for key, value in memory_dict.items():
+                    if hasattr(config.memory, key):
+                        setattr(config.memory, key, value)
+            
+            # Apply Tools configuration
+            if 'tools' in config_dict:
+                tools_dict = config_dict['tools']
+                for key, value in tools_dict.items():
+                    if hasattr(config.tools, key):
+                        setattr(config.tools, key, value)
+            
+            # Apply Autonomous Reward configuration
+            if 'autonomous_reward' in config_dict:
+                reward_dict = config_dict['autonomous_reward']
+                for key, value in reward_dict.items():
+                    if hasattr(config.autonomous_reward, key):
+                        setattr(config.autonomous_reward, key, value)
+            
+            # Apply global configuration
+            global_fields = ['cycle_interval_seconds', 'max_cycles', 'log_level', 'enable_monitoring', 'monitoring_port']
+            for field in global_fields:
+                if field in config_dict and hasattr(config, field):
+                    setattr(config, field, config_dict[field])
+                    
+        except Exception as e:
+            self.logger.error(f"Error applying configuration dictionary: {e}")
+            raise
     
     def validate_config(self, config: Optional[AgentConfig] = None) -> List[str]:
         """
