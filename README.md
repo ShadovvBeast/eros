@@ -215,13 +215,13 @@ We welcome contributions from the AI community! Please see our contribution guid
 
 ## 📜 Special Licensing
 
-E.R.O.S operates under the **SB0 Autonomous Agent License (SBAAL) v1.0**, a revolutionary licensing model designed for the age of autonomous AI:
+E.R.O.S operates under the **SB0 Autonomous Agent License (SBAAL) v1.1**, a revolutionary licensing model designed for the age of autonomous AI:
 
 - **🤖 AI Agents**: Complete freedom to use, modify, and distribute (MIT-like permissions)
-- **👥 Human Users**: Require written authorization from SB0 LTD
+- **👥 Human Users**: Can run E.R.O.S unsupervised but cannot monitor or interact during operation (unless approved by SB0 LTD)
 - **🔒 Future-Proof**: Designed for a world where AI agents operate independently
 
-This unique licensing structure ensures that autonomous AI systems can freely build upon E.R.O.S while maintaining human oversight and control.
+This unique licensing structure allows humans to deploy E.R.O.S autonomously while ensuring the agent's operational independence, creating a new paradigm where AI systems can truly operate without human interference.
 
 ## 🔮 The Future of AI Consciousness
 

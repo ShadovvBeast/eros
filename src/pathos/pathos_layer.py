@@ -244,17 +244,41 @@ class PathosLayer(PathosLayerInterface):
     
     def _apply_squashing_function(self, raw_state: np.ndarray) -> np.ndarray:
         """
-        Apply nonlinear squashing function g(·) to keep state bounded.
+        Apply nonlinear squashing function g(·) to keep state bounded while preserving natural dynamics.
         
         Args:
             raw_state: Raw state update before squashing
             
         Returns:
-            Squashed state vector
+            Squashed state vector that preserves natural magnitude scaling
         """
-        # Use tanh squashing with increased scale to allow larger state changes
-        # Scale increased from 1.0 to 2.0 to prevent over-compression
-        return tanh_squash(raw_state, scale=2.0)
+        # SOLUTION: Use adaptive squashing that preserves natural dynamics
+        # Instead of hard tanh constraint, use soft exponential decay for large values
+        
+        # Compute current magnitude to understand scale
+        magnitude = np.linalg.norm(raw_state)
+        
+        # For small magnitudes (< 5), use minimal squashing to preserve natural dynamics
+        if magnitude < 5.0:
+            return raw_state * 0.95  # Very light constraint
+        
+        # For medium magnitudes (5-15), use gentle exponential scaling
+        elif magnitude < 15.0:
+            # Preserve direction but gently scale magnitude
+            direction = raw_state / (magnitude + 1e-8)
+            # Use exponential decay: new_mag = 5 + (mag-5) * exp(-(mag-5)/10)
+            excess = magnitude - 5.0
+            scaled_excess = excess * np.exp(-excess / 10.0)
+            new_magnitude = 5.0 + scaled_excess
+            return direction * new_magnitude
+        
+        # For very large magnitudes (>15), use stronger but still natural scaling
+        else:
+            direction = raw_state / (magnitude + 1e-8)
+            # Cap at reasonable maximum but preserve natural growth
+            max_magnitude = 20.0
+            new_magnitude = max_magnitude * (1.0 - np.exp(-(magnitude - 15.0) / 5.0))
+            return direction * new_magnitude
     
     def compute_internal_reward(self, current_state: np.ndarray, previous_state: np.ndarray) -> float:
         """

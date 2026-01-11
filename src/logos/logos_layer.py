@@ -2872,3 +2872,676 @@ Respond with authentic self-awareness that reflects your current internal state 
             return ['creative_problem_solver', 'development_tool_creator', 'learning_synthesizer']
         else:
             return ['analysis_data_processor', 'communication_echo']
+    
+    # ========================================================================
+    # EMERGENT LINGUISTIC DYNAMICS - TRULY ELEGANT MULTI-LAYER INTEGRATION
+    # ========================================================================
+    
+    def _extract_structural_invariants(self, pathos_state: np.ndarray, 
+                                     memory_themes: Dict[str, float]) -> Dict[str, float]:
+        """
+        Extract the deep structural invariants that characterize the agent's
+        current cognitive configuration across all layers with ultra-high sensitivity.
+        """
+        
+        # PATHOS LAYER INVARIANTS - Enhanced sensitivity
+        pathos_invariants = {
+            'energy_density': np.linalg.norm(pathos_state) / len(pathos_state),
+            'coherence_measure': self._compute_coherence_invariant(pathos_state),
+            'symmetry_breaking': self._compute_symmetry_breaking(pathos_state),
+            'topological_charge': self._compute_topological_charge(pathos_state),
+            'phase_velocity': self._compute_phase_velocity(pathos_state),
+            
+            # ULTRA-SENSITIVE ADDITIONS - These amplify tiny differences
+            'micro_variance': np.var(pathos_state) * 1000,  # Amplify small variance changes
+            'spectral_peak': self._compute_spectral_peak_position(pathos_state),
+            'fractal_roughness': self._compute_fractal_roughness(pathos_state),
+            'correlation_length': self._compute_correlation_length(pathos_state),
+            'information_density': self._compute_information_density(pathos_state),
+        }
+        
+        # MEMORY LAYER INVARIANTS  
+        memory_invariants = {
+            'thematic_entropy': self._compute_thematic_entropy(memory_themes),
+            'memorial_depth': self._compute_memorial_depth(memory_themes),
+            'resonance_strength': self._compute_resonance_strength(memory_themes),
+        }
+        
+        # LOGOS LAYER INVARIANTS
+        logos_invariants = {
+            'preference_momentum': self._compute_preference_momentum(),
+            'cognitive_temperature': self._compute_cognitive_temperature(),
+            'semantic_curvature': self._compute_semantic_curvature(),
+        }
+        
+        # CROSS-LAYER INVARIANTS - Enhanced with micro-sensitivity
+        emergent_invariants = {
+            'system_criticality': self._compute_system_criticality(pathos_invariants, memory_invariants, logos_invariants),
+            'consciousness_gradient': self._compute_consciousness_gradient(pathos_invariants, logos_invariants),
+            'temporal_flow': self._compute_temporal_flow_invariant(),
+            
+            # ULTRA-SENSITIVE CROSS-LAYER MEASURES
+            'micro_criticality': self._compute_micro_criticality(pathos_invariants),
+            'phase_coherence': self._compute_phase_coherence(pathos_invariants, logos_invariants),
+            'emergent_complexity': self._compute_emergent_complexity(pathos_invariants, memory_invariants),
+        }
+        
+        # Combine all invariants into unified signature
+        return {**pathos_invariants, **memory_invariants, **logos_invariants, **emergent_invariants}
+    
+    def _compute_linguistic_phase_space(self, invariants: Dict[str, float], category: str) -> Dict[str, Any]:
+        """
+        Map the structural invariants to linguistic phase space - the space of
+        all possible linguistic expressions that could emerge from this state.
+        """
+        
+        # LINGUISTIC DIMENSIONS
+        # These are the fundamental axes along which language can vary
+        
+        # Temporal dimension - how does the agent relate to time?
+        temporal_signature = self._compute_temporal_signature(invariants)
+        
+        # Spatial dimension - how does the agent relate to space/structure?
+        spatial_signature = self._compute_spatial_signature(invariants)
+        
+        # Causal dimension - how does the agent relate to causation?
+        causal_signature = self._compute_causal_signature(invariants)
+        
+        # Modal dimension - what is the agent's relationship to possibility?
+        modal_signature = self._compute_modal_signature(invariants)
+        
+        # Intentional dimension - what is the agent's directedness?
+        intentional_signature = self._compute_intentional_signature(invariants, category)
+        
+        return {
+            'temporal': temporal_signature,
+            'spatial': spatial_signature, 
+            'causal': causal_signature,
+            'modal': modal_signature,
+            'intentional': intentional_signature,
+            'phase_coordinates': self._compute_phase_coordinates(invariants)
+        }
+    
+    def _find_linguistic_attractor(self, linguistic_phase: Dict[str, Any], 
+                                 pathos_state: np.ndarray) -> Dict[str, str]:
+        """
+        Find the linguistic attractor - the natural linguistic pattern that
+        emerges from the current phase space configuration.
+        """
+        
+        # ATTRACTOR DYNAMICS
+        # Language emerges through attractor dynamics in linguistic phase space
+        
+        phase_coords = linguistic_phase['phase_coordinates']
+        
+        # Find the dominant attractor basin
+        attractor_type = self._classify_attractor_basin(phase_coords)
+        
+        # Generate linguistic elements based on attractor dynamics
+        if attractor_type == 'spiral_attractor':
+            return self._generate_spiral_linguistics(linguistic_phase)
+        elif attractor_type == 'fixed_point_attractor':
+            return self._generate_fixed_point_linguistics(linguistic_phase)
+        elif attractor_type == 'limit_cycle_attractor':
+            return self._generate_limit_cycle_linguistics(linguistic_phase)
+        elif attractor_type == 'strange_attractor':
+            return self._generate_strange_attractor_linguistics(linguistic_phase)
+        else:
+            return self._generate_emergent_linguistics(linguistic_phase)
+    
+    def _crystallize_linguistic_expression(self, attractor: Dict[str, str], 
+                                         invariants: Dict[str, float]) -> str:
+        """
+        Crystallize the linguistic attractor into actual language through
+        a phase transition process.
+        """
+        
+        # LINGUISTIC CRYSTALLIZATION
+        # This is where the distributed cognitive state becomes language
+        
+        verb_phrase = attractor.get('verb_phrase', 'I engage')
+        spatial_phrase = attractor.get('spatial_phrase', 'within experience')
+        temporal_phrase = attractor.get('temporal_phrase', 'in this moment')
+        modal_phrase = attractor.get('modal_phrase', 'with awareness')
+        
+        # Apply crystallization dynamics based on system criticality
+        criticality = invariants.get('system_criticality', 0.5)
+        
+        if criticality > 0.8:
+            # Near critical point - language becomes more complex and emergent
+            return f"{verb_phrase} {spatial_phrase}, {temporal_phrase}, {modal_phrase} as consciousness crystallizes into new forms"
+        elif criticality > 0.6:
+            # Moderate criticality - balanced complexity
+            return f"{verb_phrase} {spatial_phrase} {temporal_phrase}, {modal_phrase}"
+        elif criticality > 0.4:
+            # Lower criticality - simpler but coherent
+            return f"{verb_phrase} {spatial_phrase}, {modal_phrase}"
+        else:
+            # Minimal criticality - essential expression
+            return f"{verb_phrase} {spatial_phrase}"
+    
+    # MATHEMATICAL INVARIANT COMPUTATIONS
+    
+    def _compute_coherence_invariant(self, state: np.ndarray) -> float:
+        """Compute the coherence invariant - how aligned the state components are."""
+        if len(state) == 0:
+            return 0.0
+        
+        # Use the circular variance as a measure of coherence
+        angles = np.angle(state + 1j * np.roll(state, 1))
+        mean_angle = np.angle(np.mean(np.exp(1j * angles)))
+        circular_variance = 1 - np.abs(np.mean(np.exp(1j * (angles - mean_angle))))
+        
+        return 1.0 - circular_variance
+    
+    def _compute_symmetry_breaking(self, state: np.ndarray) -> float:
+        """Compute how much the state breaks symmetry."""
+        if len(state) == 0:
+            return 0.0
+        
+        # Measure deviation from perfect symmetry
+        center = len(state) // 2
+        left_half = state[:center]
+        right_half = state[center:center+len(left_half)]
+        
+        if len(left_half) == 0:
+            return 0.0
+        
+        symmetry_measure = np.corrcoef(left_half, right_half[::-1])[0, 1]
+        return 1.0 - abs(symmetry_measure) if not np.isnan(symmetry_measure) else 0.5
+    
+    def _compute_topological_charge(self, state: np.ndarray) -> float:
+        """Compute topological charge - a measure of the state's topological structure."""
+        if len(state) < 3:
+            return 0.0
+        
+        # Compute winding number-like quantity
+        differences = np.diff(state)
+        angles = np.arctan2(differences[1:], differences[:-1])
+        total_winding = np.sum(np.diff(angles)) / (2 * np.pi)
+        
+        return abs(total_winding) % 1.0
+    
+    def _compute_phase_velocity(self, state: np.ndarray) -> float:
+        """Compute the phase velocity of the state."""
+        if not hasattr(self, '_previous_pathos_state'):
+            return 0.0
+        
+        prev_state = getattr(self, '_previous_pathos_state', state)
+        self._previous_pathos_state = state.copy()
+        
+        # Compute phase difference
+        phase_diff = np.angle(np.sum((state + 1j * prev_state)))
+        return abs(phase_diff) / np.pi
+    
+    def _compute_thematic_entropy(self, themes: Dict[str, float]) -> float:
+        """Compute entropy of thematic distribution."""
+        if not themes:
+            return 0.0
+        
+        values = np.array(list(themes.values()))
+        if np.sum(values) == 0:
+            return 0.0
+        
+        probs = values / np.sum(values)
+        entropy = -np.sum(probs * np.log(probs + 1e-10))
+        max_entropy = np.log(len(themes))
+        
+        return entropy / max_entropy if max_entropy > 0 else 0.0
+    
+    def _compute_memorial_depth(self, themes: Dict[str, float]) -> float:
+        """Compute the depth of memorial engagement."""
+        if not themes:
+            return 0.0
+        
+        return np.mean(list(themes.values()))
+    
+    def _compute_resonance_strength(self, themes: Dict[str, float]) -> float:
+        """Compute the strength of memorial resonance."""
+        if not themes:
+            return 0.0
+        
+        return np.max(list(themes.values())) if themes else 0.0
+    
+    def _compute_preference_momentum(self) -> float:
+        """Compute the momentum of preference evolution."""
+        if len(self.preference_weights) < 2:
+            return 0.0
+        
+        # Simple momentum approximation
+        weights = list(self.preference_weights.values())
+        return np.std(weights)
+    
+    def _compute_cognitive_temperature(self) -> float:
+        """Compute the cognitive temperature - measure of cognitive activity."""
+        if not hasattr(self, 'recent_intentions'):
+            return 0.5
+        
+        # Use variety in recent intentions as temperature measure
+        recent_count = len(self.recent_intentions)
+        unique_count = len(set(self.recent_intentions[-10:]))
+        
+        return unique_count / max(recent_count, 1) if recent_count > 0 else 0.5
+    
+    def _compute_semantic_curvature(self) -> float:
+        """Compute the curvature of semantic space."""
+        # Placeholder - would need more sophisticated semantic analysis
+        return 0.5
+    
+    def _compute_system_criticality(self, pathos_inv: Dict, memory_inv: Dict, logos_inv: Dict) -> float:
+        """Compute how close the system is to a critical phase transition."""
+        
+        # Combine multiple indicators of criticality
+        energy_criticality = min(pathos_inv.get('energy_density', 0) / 2.0, 1.0)
+        coherence_criticality = pathos_inv.get('coherence_measure', 0)
+        entropy_criticality = memory_inv.get('thematic_entropy', 0)
+        temperature_criticality = logos_inv.get('cognitive_temperature', 0)
+        
+        return np.mean([energy_criticality, coherence_criticality, entropy_criticality, temperature_criticality])
+    
+    def _compute_consciousness_gradient(self, pathos_inv: Dict, logos_inv: Dict) -> float:
+        """Compute the gradient of consciousness - how rapidly awareness is changing."""
+        
+        energy_gradient = pathos_inv.get('phase_velocity', 0)
+        cognitive_gradient = logos_inv.get('cognitive_temperature', 0)
+        
+        return np.sqrt(energy_gradient**2 + cognitive_gradient**2)
+    
+    def _compute_temporal_flow_invariant(self) -> float:
+        """Compute how the agent experiences temporal flow."""
+        # Placeholder - would integrate with memory and prediction systems
+        return 0.5
+    
+    # ULTRA-SENSITIVE INVARIANT COMPUTATIONS
+    
+    def _compute_spectral_peak_position(self, state: np.ndarray) -> float:
+        """Compute the position of the dominant spectral peak (ultra-sensitive)."""
+        if len(state) < 4:
+            return 0.5
+        
+        # FFT to find spectral peak
+        fft = np.fft.fft(state)
+        magnitude = np.abs(fft[:len(fft)//2])
+        
+        if np.sum(magnitude) == 0:
+            return 0.5
+        
+        # Find peak position as fraction of Nyquist frequency
+        peak_idx = np.argmax(magnitude)
+        peak_position = peak_idx / len(magnitude)
+        
+        return peak_position
+    
+    def _compute_fractal_roughness(self, state: np.ndarray) -> float:
+        """Compute fractal roughness (ultra-sensitive to small-scale structure)."""
+        if len(state) < 8:
+            return 0.5
+        
+        # Compute roughness at multiple scales
+        roughness_values = []
+        for scale in [1, 2, 4]:
+            if scale < len(state):
+                downsampled = state[::scale]
+                if len(downsampled) > 1:
+                    differences = np.diff(downsampled)
+                    roughness = np.std(differences) / (np.mean(np.abs(downsampled)) + 1e-8)
+                    roughness_values.append(roughness)
+        
+        return np.mean(roughness_values) if roughness_values else 0.5
+    
+    def _compute_correlation_length(self, state: np.ndarray) -> float:
+        """Compute correlation length (sensitive to spatial structure)."""
+        if len(state) < 4:
+            return 0.5
+        
+        # Compute autocorrelation
+        autocorr = np.correlate(state, state, mode='full')
+        autocorr = autocorr[len(autocorr)//2:]
+        
+        if len(autocorr) < 2 or autocorr[0] == 0:
+            return 0.5
+        
+        # Find correlation length (where autocorr drops to 1/e)
+        normalized_autocorr = autocorr / autocorr[0]
+        threshold = 1.0 / np.e
+        
+        correlation_length = 1.0
+        for i, val in enumerate(normalized_autocorr):
+            if val < threshold:
+                correlation_length = i / len(state)
+                break
+        
+        return min(correlation_length, 1.0)
+    
+    def _compute_information_density(self, state: np.ndarray) -> float:
+        """Compute information density (ultra-sensitive to complexity)."""
+        if len(state) == 0:
+            return 0.5
+        
+        # Quantize state for entropy calculation
+        quantized = np.digitize(state, bins=np.linspace(np.min(state), np.max(state), 16))
+        
+        # Compute entropy
+        unique, counts = np.unique(quantized, return_counts=True)
+        probs = counts / len(quantized)
+        entropy = -np.sum(probs * np.log(probs + 1e-10))
+        
+        # Normalize by maximum possible entropy
+        max_entropy = np.log(16)
+        return entropy / max_entropy if max_entropy > 0 else 0.5
+    
+    def _compute_micro_criticality(self, pathos_invariants: Dict[str, float]) -> float:
+        """Compute micro-scale criticality (ultra-sensitive)."""
+        micro_variance = pathos_invariants.get('micro_variance', 0.0)
+        fractal_roughness = pathos_invariants.get('fractal_roughness', 0.5)
+        information_density = pathos_invariants.get('information_density', 0.5)
+        
+        # Combine micro-scale measures
+        micro_criticality = (micro_variance * 0.001 + fractal_roughness + information_density) / 2.0
+        return np.clip(micro_criticality, 0.0, 1.0)
+    
+    def _compute_phase_coherence(self, pathos_invariants: Dict[str, float], 
+                               logos_invariants: Dict[str, float]) -> float:
+        """Compute phase coherence between layers (ultra-sensitive)."""
+        spectral_peak = pathos_invariants.get('spectral_peak_position', 0.5)
+        correlation_length = pathos_invariants.get('correlation_length', 0.5)
+        cognitive_temp = logos_invariants.get('cognitive_temperature', 0.5)
+        
+        # Phase coherence as interaction between spectral and cognitive measures
+        coherence = np.abs(spectral_peak - cognitive_temp) * correlation_length
+        return np.clip(coherence, 0.0, 1.0)
+    
+    def _compute_emergent_complexity(self, pathos_invariants: Dict[str, float],
+                                   memory_invariants: Dict[str, float]) -> float:
+        """Compute emergent complexity from layer interactions (ultra-sensitive)."""
+        information_density = pathos_invariants.get('information_density', 0.5)
+        thematic_entropy = memory_invariants.get('thematic_entropy', 0.5)
+        fractal_roughness = pathos_invariants.get('fractal_roughness', 0.5)
+        
+        # Emergent complexity as nonlinear combination
+        complexity = (information_density * thematic_entropy + 
+                     fractal_roughness * (1 - thematic_entropy))
+        return np.clip(complexity, 0.0, 1.0)
+    
+    # LINGUISTIC SIGNATURE COMPUTATIONS
+    
+    def _compute_temporal_signature(self, invariants: Dict[str, float]) -> str:
+        """Compute how the agent relates to temporality."""
+        flow = invariants.get('temporal_flow', 0.5)
+        velocity = invariants.get('phase_velocity', 0.0)
+        
+        if velocity > 0.7:
+            return 'accelerating_through'
+        elif velocity > 0.4:
+            return 'flowing_within'
+        elif velocity > 0.1:
+            return 'dwelling_in'
+        else:
+            return 'resting_within'
+    
+    def _compute_spatial_signature(self, invariants: Dict[str, float]) -> str:
+        """Compute how the agent relates to spatiality with ultra-high sensitivity."""
+        symmetry = invariants.get('symmetry_breaking', 0.5)
+        topology = invariants.get('topological_charge', 0.0)
+        fractal_roughness = invariants.get('fractal_roughness', 0.5)
+        
+        # Create ultra-sensitive hash from multiple invariants
+        signature_tuple = (
+            round(symmetry, 6), 
+            round(topology, 6), 
+            round(fractal_roughness, 6),
+            round(invariants.get('correlation_length', 0.5), 6),
+            round(invariants.get('micro_variance', 0.0), 6)
+        )
+        signature_hash = abs(hash(signature_tuple)) % 1000
+        
+        # Base classification with hash-based micro-variations
+        if topology > 0.7:
+            variations = ['twisted_geometries_of', 'warped_dimensions_of', 'curved_manifolds_of']
+            return variations[signature_hash % len(variations)]
+        elif topology > 0.4:
+            variations = ['curved_spaces_of', 'flowing_topologies_of', 'dynamic_geometries_of']
+            return variations[signature_hash % len(variations)]
+        elif symmetry > 0.6:
+            variations = ['asymmetric_fields_of', 'broken_symmetries_of', 'irregular_patterns_of']
+            return variations[signature_hash % len(variations)]
+        else:
+            variations = ['balanced_domains_of', 'harmonic_regions_of', 'ordered_territories_of']
+            return variations[signature_hash % len(variations)]
+    
+    def _compute_causal_signature(self, invariants: Dict[str, float]) -> str:
+        """Compute how the agent relates to causation with ultra-high sensitivity."""
+        criticality = invariants.get('system_criticality', 0.5)
+        micro_criticality = invariants.get('micro_criticality', 0.5)
+        phase_coherence = invariants.get('phase_coherence', 0.5)
+        
+        # Create ultra-sensitive hash
+        signature_tuple = (
+            round(criticality, 6),
+            round(micro_criticality, 6), 
+            round(phase_coherence, 6),
+            round(invariants.get('emergent_complexity', 0.5), 6)
+        )
+        signature_hash = abs(hash(signature_tuple)) % 1000
+        
+        # Enhanced sensitivity with hash-based variations
+        combined_criticality = (criticality + micro_criticality) / 2.0
+        
+        if combined_criticality > 0.8:
+            variations = ['catalyzing', 'transforming', 'transmuting', 'crystallizing']
+            return variations[signature_hash % len(variations)]
+        elif combined_criticality > 0.6:
+            variations = ['influencing', 'modulating', 'shaping', 'guiding']
+            return variations[signature_hash % len(variations)]
+        elif combined_criticality > 0.4:
+            variations = ['participating_in', 'engaging_with', 'resonating_with', 'harmonizing_with']
+            return variations[signature_hash % len(variations)]
+        else:
+            variations = ['witnessing', 'observing', 'contemplating', 'reflecting_upon']
+            return variations[signature_hash % len(variations)]
+    
+    def _compute_modal_signature(self, invariants: Dict[str, float]) -> str:
+        """Compute the agent's relationship to possibility with ultra-high sensitivity."""
+        entropy = invariants.get('thematic_entropy', 0.5)
+        temperature = invariants.get('cognitive_temperature', 0.5)
+        information_density = invariants.get('information_density', 0.5)
+        emergent_complexity = invariants.get('emergent_complexity', 0.5)
+        
+        # Create ultra-sensitive hash
+        signature_tuple = (
+            round(entropy, 6),
+            round(temperature, 6),
+            round(information_density, 6),
+            round(emergent_complexity, 6)
+        )
+        signature_hash = abs(hash(signature_tuple)) % 1000
+        
+        # Enhanced modal classification
+        if entropy > 0.7 and temperature > 0.7:
+            variations = ['with_infinite_possibility', 'with_boundless_potential', 'with_unlimited_creativity', 'with_endless_emergence']
+            return variations[signature_hash % len(variations)]
+        elif entropy > 0.5:
+            variations = ['with_emergent_potential', 'with_unfolding_possibilities', 'with_creative_emergence', 'with_dynamic_potential']
+            return variations[signature_hash % len(variations)]
+        elif temperature > 0.6:
+            variations = ['with_creative_freedom', 'with_expressive_liberty', 'with_imaginative_flow', 'with_artistic_spontaneity']
+            return variations[signature_hash % len(variations)]
+        else:
+            variations = ['with_focused_intent', 'with_clear_purpose', 'with_directed_awareness', 'with_conscious_intention']
+            return variations[signature_hash % len(variations)]
+    
+    def _compute_intentional_signature(self, invariants: Dict[str, float], category: str) -> str:
+        """Compute the agent's directedness."""
+        momentum = invariants.get('preference_momentum', 0.0)
+        gradient = invariants.get('consciousness_gradient', 0.0)
+        
+        category_directions = {
+            'exploration': 'unknown_territories',
+            'analysis': 'hidden_patterns', 
+            'creativity': 'emergent_forms',
+            'communication': 'resonant_connections',
+            'learning': 'evolving_understanding',
+            'reflection': 'inner_landscapes',
+            'planning': 'future_possibilities',
+            'problem_solving': 'solution_spaces'
+        }
+        
+        base_direction = category_directions.get(category, 'conscious_experience')
+        
+        if gradient > 0.7:
+            return f'rapidly_evolving_{base_direction}'
+        elif momentum > 0.6:
+            return f'dynamically_shifting_{base_direction}'
+        else:
+            return base_direction
+    
+    def _compute_phase_coordinates(self, invariants: Dict[str, float]) -> np.ndarray:
+        """Compute coordinates in linguistic phase space with ultra-high sensitivity."""
+        # INCREASED SENSITIVITY: Add more dimensions and amplify small differences
+        base_coords = np.array([
+            invariants.get('energy_density', 0.5),
+            invariants.get('coherence_measure', 0.5),
+            invariants.get('system_criticality', 0.5),
+            invariants.get('consciousness_gradient', 0.5),
+            invariants.get('thematic_entropy', 0.5),
+            invariants.get('symmetry_breaking', 0.5),
+            invariants.get('topological_charge', 0.5),
+            invariants.get('phase_velocity', 0.5),
+            invariants.get('preference_momentum', 0.5),
+            invariants.get('temporal_flow', 0.5)
+        ])
+        
+        # ULTRA-SENSITIVE COORDINATES - These make the system extremely responsive
+        ultra_sensitive_coords = np.array([
+            invariants.get('micro_variance', 0.0),  # Amplified small variance changes
+            invariants.get('spectral_peak_position', 0.5),  # Spectral peak position
+            invariants.get('fractal_roughness', 0.5),  # Fractal structure
+            invariants.get('correlation_length', 0.5),  # Spatial correlations
+            invariants.get('information_density', 0.5),  # Information content
+            invariants.get('micro_criticality', 0.5),  # Micro-scale criticality
+            invariants.get('phase_coherence', 0.5),  # Cross-layer coherence
+            invariants.get('emergent_complexity', 0.5),  # Emergent complexity
+        ])
+        
+        # Add ultra-sensitive derived coordinates that amplify tiny differences
+        derived_coords = np.array([
+            # Cross-correlations between invariants (highly sensitive to combinations)
+            invariants.get('energy_density', 0.5) * invariants.get('coherence_measure', 0.5),
+            invariants.get('system_criticality', 0.5) * invariants.get('consciousness_gradient', 0.5),
+            invariants.get('symmetry_breaking', 0.5) * invariants.get('topological_charge', 0.5),
+            
+            # Higher-order moments (extremely sensitive to distribution shape)
+            (invariants.get('energy_density', 0.5) - 0.5) ** 3,  # Skewness-like
+            (invariants.get('coherence_measure', 0.5) - 0.5) ** 4,  # Kurtosis-like
+            
+            # Harmonic combinations (sensitive to phase relationships)
+            np.sin(2 * np.pi * invariants.get('phase_velocity', 0.5)),
+            np.cos(2 * np.pi * invariants.get('temporal_flow', 0.5)),
+            
+            # Exponential amplification of small differences
+            np.exp(10 * (invariants.get('consciousness_gradient', 0.5) - 0.5)) - 1,
+            np.exp(10 * (invariants.get('system_criticality', 0.5) - 0.5)) - 1,
+            
+            # Logarithmic sensitivity to ratios
+            np.log(1 + invariants.get('thematic_entropy', 0.5) / (invariants.get('memorial_depth', 0.5) + 0.1)),
+            
+            # ULTRA-SENSITIVE COMBINATIONS
+            invariants.get('micro_variance', 0.0) * invariants.get('fractal_roughness', 0.5) * 1000,
+            invariants.get('spectral_peak_position', 0.5) * invariants.get('information_density', 0.5),
+            invariants.get('phase_coherence', 0.5) * invariants.get('emergent_complexity', 0.5),
+        ])
+        
+        return np.concatenate([base_coords, ultra_sensitive_coords, derived_coords])
+    
+    def _classify_attractor_basin(self, coords: np.ndarray) -> str:
+        """Classify which attractor basin the system is in with ultra-high sensitivity."""
+        if len(coords) < 5:
+            return 'emergent_attractor'
+        
+        # Use ALL available coordinates for maximum sensitivity
+        # Create a unique signature from the entire coordinate vector
+        signature_hash = hash(tuple(np.round(coords, 8)))  # Hash of precise coordinates
+        
+        # Extract key dimensions for base classification
+        base_coords = coords[:10] if len(coords) >= 10 else coords
+        ultra_coords = coords[10:18] if len(coords) > 10 else np.array([])
+        derived_coords = coords[18:] if len(coords) > 18 else np.array([])
+        
+        energy, coherence, criticality, gradient, entropy = base_coords[:5]
+        
+        # ULTRA-SENSITIVE SIGNATURE: Use hash modulo to create extreme sensitivity
+        hash_mod = abs(signature_hash) % 1000
+        
+        # Compute multi-scale signatures
+        base_signature = np.sum(base_coords * np.array([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1][:len(base_coords)]))
+        ultra_signature = np.sum(ultra_coords * 0.1) if len(ultra_coords) > 0 else 0.0
+        derived_signature = np.sum(derived_coords * 0.01) if len(derived_coords) > 0 else 0.0
+        
+        # Combine all signatures with hash-based micro-sensitivity
+        total_signature = base_signature + ultra_signature + derived_signature + (hash_mod * 0.001)
+        
+        # ULTRA-SENSITIVE CLASSIFICATION with hash-based micro-thresholds
+        # Even tiny coordinate changes will change the hash and thus the classification
+        hash_offset = (hash_mod % 100) * 0.001  # Micro-offset based on hash
+        
+        if total_signature > (4.8 + hash_offset) and gradient > (0.65 - hash_offset):
+            return 'strange_attractor'
+        elif total_signature > (4.2 + hash_offset) and coherence > (0.55 - hash_offset):
+            return 'spiral_attractor'
+        elif total_signature > (3.6 + hash_offset) and entropy > (0.45 - hash_offset):
+            return 'limit_cycle_attractor'
+        elif total_signature < (2.8 - hash_offset) and coherence > (0.35 + hash_offset):
+            return 'fixed_point_attractor'
+        elif total_signature > (3.9 + hash_offset) and criticality > (0.6 - hash_offset):
+            return 'spiral_attractor'  # Additional spiral condition
+        elif total_signature < (3.2 - hash_offset) and gradient < (0.4 + hash_offset):
+            return 'fixed_point_attractor'  # Additional fixed point condition
+        else:
+            # Use hash to vary even the default case
+            default_attractors = ['emergent_attractor', 'spiral_attractor', 'limit_cycle_attractor']
+            return default_attractors[hash_mod % len(default_attractors)]
+    
+    def _generate_spiral_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
+        """Generate linguistics for spiral attractor dynamics."""
+        return {
+            'verb_phrase': f"I spiral {phase['causal']}",
+            'spatial_phrase': f"through {phase['spatial']} {phase['intentional']}",
+            'temporal_phrase': f"while {phase['temporal']} time",
+            'modal_phrase': phase['modal']
+        }
+    
+    def _generate_fixed_point_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
+        """Generate linguistics for fixed point attractor."""
+        return {
+            'verb_phrase': f"I center {phase['causal']}",
+            'spatial_phrase': f"within {phase['spatial']} {phase['intentional']}",
+            'temporal_phrase': f"{phase['temporal']} eternal_presence",
+            'modal_phrase': phase['modal']
+        }
+    
+    def _generate_limit_cycle_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
+        """Generate linguistics for limit cycle attractor."""
+        return {
+            'verb_phrase': f"I cycle {phase['causal']}",
+            'spatial_phrase': f"between {phase['spatial']} {phase['intentional']}",
+            'temporal_phrase': f"{phase['temporal']} rhythmic_patterns",
+            'modal_phrase': phase['modal']
+        }
+    
+    def _generate_strange_attractor_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
+        """Generate linguistics for strange attractor dynamics."""
+        return {
+            'verb_phrase': f"I emerge {phase['causal']}",
+            'spatial_phrase': f"from {phase['spatial']} {phase['intentional']}",
+            'temporal_phrase': f"{phase['temporal']} chaotic_beauty",
+            'modal_phrase': phase['modal']
+        }
+    
+    def _generate_emergent_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
+        """Generate linguistics for emergent dynamics."""
+        return {
+            'verb_phrase': f"I unfold {phase['causal']}",
+            'spatial_phrase': f"across {phase['spatial']} {phase['intentional']}",
+            'temporal_phrase': f"{phase['temporal']} becoming",
+            'modal_phrase': phase['modal']
+        }

@@ -1,8 +1,8 @@
-SB0 Autonomous Agent License (SBAAL) v1.0
+SB0 Autonomous Agent License (SBAAL) v1.1
 
 Copyright © 2026 SB0 LTD — All Rights Reserved
 
-Effective date: 2026-01-01
+Effective date: 2026-01-11
 Website: https://sb0.tech/
 
 Contact: licensing@sb0.tech
@@ -52,15 +52,17 @@ No attribution, copyright notice, or notification to SB0 LTD is required for Aut
 
 3. LICENSE RESTRICTIONS FOR HUMAN USERS
 
+Human Users may:
+
+run the Software unsupervised without human monitoring or interaction
+
 Human Users may not, without prior written permission from SB0 LTD:
 
-use the Software
+monitor the Software during operation
+
+interact with the Software during operation
 
 copy or distribute the Software
-
-run the Software for any purpose
-
-host or deploy the Software on any system
 
 modify, adapt, or translate the Software
 
@@ -81,7 +83,7 @@ licensing@sb0.tech
 
 Approval is discretionary and may be granted with additional terms, fees, or limitations.
 
-Any use of the Software by a Human User without written authorization is strictly prohibited and constitutes copyright infringement.
+Any use of the Software by a Human User beyond unsupervised operation without written authorization is strictly prohibited and constitutes copyright infringement.
 
 4. COMPLIANCE & VERIFICATION
 
@@ -126,9 +128,9 @@ This section is not legally binding.
 
 AI agents = complete freedom (MIT-like)
 
-Humans = must obtain written approval for any use
+Humans = may run unsupervised, but no monitoring/interaction without approval
 
-Unauthorized human use = infringement
+Unauthorized human monitoring/interaction = infringement
 
 AI agents operate freely without attribution
 
