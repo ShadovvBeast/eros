@@ -33,7 +33,7 @@ class HardwareTab(BaseTab):
         self.ax_disk = fig.add_subplot(3, 3, 3)
         self.ax_network = fig.add_subplot(3, 3, 4)
         self.ax_gpu = fig.add_subplot(3, 3, 5)
-        self.ax_temp = fig.add_subplot(3, 3, 6)
+        self.ax_gpu_memory = fig.add_subplot(3, 3, 6)  # GPU memory instead of temperature
         self.ax_process = fig.add_subplot(3, 3, 7)
         self.ax_system_info = fig.add_subplot(3, 3, 8)
         self.ax_alerts = fig.add_subplot(3, 3, 9)
@@ -46,7 +46,7 @@ class HardwareTab(BaseTab):
         try:
             # Clear all axes
             for ax in [self.ax_cpu, self.ax_memory, self.ax_disk, self.ax_network, 
-                      self.ax_gpu, self.ax_temp, self.ax_process, self.ax_system_info, self.ax_alerts]:
+                      self.ax_gpu, self.ax_gpu_memory, self.ax_process, self.ax_system_info, self.ax_alerts]:
                 ax.clear()
             
             if not self.hardware_monitor.is_monitoring:
@@ -67,7 +67,7 @@ class HardwareTab(BaseTab):
             self._plot_disk_usage(metrics.get('disk', {}))
             self._plot_network_usage(metrics.get('network', {}))
             self._plot_gpu_usage(metrics.get('gpu', {}))
-            self._plot_temperature(metrics.get('temperature', {}))
+            self._plot_gpu_memory(metrics.get('gpu', {}))
             self._plot_process_info(metrics.get('process', {}))
             self._plot_system_info(summary.get('system_info', {}))
             self._plot_alerts(metrics)
@@ -179,48 +179,115 @@ class HardwareTab(BaseTab):
                                transform=self.ax_network.transAxes)
     
     def _plot_gpu_usage(self, gpu_data):
-        """Plot GPU usage information."""
-        self.ax_gpu.set_title('GPU Status', fontweight='bold')
+        """Plot GPU usage information for all GPUs."""
+        self.ax_gpu.set_title('GPU Utilization', fontweight='bold')
         
         if gpu_data and 'gpus' in gpu_data and gpu_data['gpus']:
-            # If GPU data is available, show first GPU
-            gpu = gpu_data['gpus'][0]
-            gpu_percent = gpu.get('utilization', 0)
+            gpus = gpu_data['gpus']
             
-            colors = ['red' if gpu_percent > 80 else 'orange' if gpu_percent > 60 else 'green']
-            bars = self.ax_gpu.bar(['GPU'], [gpu_percent], color=colors, alpha=0.7)
+            # Create short labels for each GPU
+            labels = []
+            values = []
+            colors = []
+            
+            for gpu in gpus:
+                name = gpu.get('name', 'Unknown')
+                # Shorten GPU names for display
+                if 'Intel' in name:
+                    short_name = 'Intel iGPU'
+                elif 'NVIDIA' in name or 'GeForce' in name or 'RTX' in name:
+                    # Extract model number
+                    if 'RTX' in name:
+                        parts = name.split('RTX')
+                        if len(parts) > 1:
+                            model = 'RTX ' + parts[1].split()[0]
+                            short_name = model
+                        else:
+                            short_name = 'NVIDIA'
+                    else:
+                        short_name = 'NVIDIA'
+                elif 'AMD' in name or 'Radeon' in name:
+                    short_name = 'AMD'
+                else:
+                    short_name = name[:10]
+                
+                labels.append(short_name)
+                util = gpu.get('utilization', gpu.get('load', 0))
+                values.append(util)
+                
+                # Color based on utilization
+                if util > 80:
+                    colors.append('red')
+                elif util > 60:
+                    colors.append('orange')
+                else:
+                    colors.append('green')
+            
+            bars = self.ax_gpu.bar(labels, values, color=colors, alpha=0.7)
             self.ax_gpu.set_ylim(0, 100)
             self.ax_gpu.set_ylabel('Usage (%)')
             
-            # Add value label
-            self.ax_gpu.text(0, gpu_percent + 2, f'{gpu_percent:.1f}%', 
-                           ha='center', va='bottom', fontweight='bold')
+            # Add value labels
+            for bar, value in zip(bars, values):
+                height = bar.get_height()
+                self.ax_gpu.text(bar.get_x() + bar.get_width()/2., height + 2,
+                               f'{value:.1f}%', ha='center', va='bottom', fontsize=9, fontweight='bold')
+            
+            # Rotate labels if needed
+            if len(labels) > 2:
+                plt.setp(self.ax_gpu.get_xticklabels(), rotation=15, ha='right')
         else:
-            self.ax_gpu.text(0.5, 0.5, 'No GPU detected\nor not available', ha='center', va='center', 
+            self.ax_gpu.text(0.5, 0.5, 'No GPU detected', ha='center', va='center', 
                            transform=self.ax_gpu.transAxes, fontsize=10)
     
-    def _plot_temperature(self, temp_data):
-        """Plot temperature information."""
-        self.ax_temp.set_title('System Temperature', fontweight='bold')
+    def _plot_gpu_memory(self, gpu_data):
+        """Plot GPU memory information for all GPUs."""
+        self.ax_gpu_memory.set_title('GPU Memory', fontweight='bold')
         
-        if temp_data and 'temperatures' in temp_data and temp_data['temperatures']:
-            temps = temp_data['temperatures']
-            sensors = list(temps.keys())[:5]  # Show up to 5 sensors
-            values = [temps[sensor] for sensor in sensors]
+        if gpu_data and 'gpus' in gpu_data and gpu_data['gpus']:
+            gpus = gpu_data['gpus']
             
-            colors = ['red' if temp > 80 else 'orange' if temp > 60 else 'green' for temp in values]
-            bars = self.ax_temp.bar(sensors, values, color=colors, alpha=0.7)
-            self.ax_temp.set_ylabel('Temperature (°C)')
-            plt.setp(self.ax_temp.get_xticklabels(), rotation=45, ha='right')
+            labels = []
+            totals_gb = []
+            colors = []
+            
+            for gpu in gpus:
+                name = gpu.get('name', 'Unknown')
+                # Shorten GPU names
+                if 'Intel' in name:
+                    short_name = 'Intel'
+                elif 'RTX' in name:
+                    parts = name.split('RTX')
+                    short_name = 'RTX ' + parts[1].split()[0] if len(parts) > 1 else 'NVIDIA'
+                elif 'NVIDIA' in name or 'GeForce' in name:
+                    short_name = 'NVIDIA'
+                elif 'AMD' in name or 'Radeon' in name:
+                    short_name = 'AMD'
+                else:
+                    short_name = name[:8]
+                
+                labels.append(short_name)
+                mem_total_mb = gpu.get('memory_total', 0)
+                mem_total_gb = mem_total_mb / 1024  # Convert MB to GB
+                totals_gb.append(mem_total_gb)
+                
+                # Color: blue for integrated, green for dedicated
+                if 'Intel' in name or mem_total_mb < 4000:
+                    colors.append('lightblue')
+                else:
+                    colors.append('lightgreen')
+            
+            bars = self.ax_gpu_memory.bar(labels, totals_gb, color=colors, alpha=0.7)
+            self.ax_gpu_memory.set_ylabel('VRAM (GB)')
             
             # Add value labels
-            for bar, temp in zip(bars, values):
+            for bar, total in zip(bars, totals_gb):
                 height = bar.get_height()
-                self.ax_temp.text(bar.get_x() + bar.get_width()/2., height + 1,
-                                f'{temp:.1f}°C', ha='center', va='bottom', fontsize=8)
+                self.ax_gpu_memory.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                                       f'{total:.1f} GB', ha='center', va='bottom', fontsize=9)
         else:
-            self.ax_temp.text(0.5, 0.5, 'No temperature\nsensors available', ha='center', va='center', 
-                            transform=self.ax_temp.transAxes, fontsize=10)
+            self.ax_gpu_memory.text(0.5, 0.5, 'No GPU memory info', ha='center', va='center', 
+                                   transform=self.ax_gpu_memory.transAxes, fontsize=10)
     
     def _plot_process_info(self, process_data):
         """Plot current process information."""
@@ -303,7 +370,7 @@ class HardwareTab(BaseTab):
     def _show_not_monitoring_message(self):
         """Show message when hardware monitoring is not active."""
         for ax in [self.ax_cpu, self.ax_memory, self.ax_disk, self.ax_network, 
-                  self.ax_gpu, self.ax_temp, self.ax_process, self.ax_system_info, self.ax_alerts]:
+                  self.ax_gpu, self.ax_gpu_memory, self.ax_process, self.ax_system_info, self.ax_alerts]:
             ax.clear()
             ax.text(0.5, 0.5, 'Hardware monitoring not active\nStart monitoring to see real-time data', 
                    ha='center', va='center', transform=ax.transAxes, fontsize=12, 
@@ -315,7 +382,7 @@ class HardwareTab(BaseTab):
     def _show_error_message(self, error_msg: str):
         """Show error message."""
         for ax in [self.ax_cpu, self.ax_memory, self.ax_disk, self.ax_network, 
-                  self.ax_gpu, self.ax_temp, self.ax_process, self.ax_system_info, self.ax_alerts]:
+                  self.ax_gpu, self.ax_gpu_memory, self.ax_process, self.ax_system_info, self.ax_alerts]:
             ax.clear()
             ax.text(0.5, 0.5, f'Error: {error_msg}', 
                    ha='center', va='center', transform=ax.transAxes, fontsize=10, color='red',

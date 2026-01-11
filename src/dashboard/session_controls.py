@@ -27,7 +27,7 @@ except ImportError:
         
         class SessionConfig:
             def __init__(self):
-                self.duration_minutes = 5.0
+                self.duration_minutes = -1.0  # -1 means infinite (no time limit)
                 self.agent_identity = "Test Agent"
                 self.pathos_dimension = 128
                 self.exploration_factor = 0.1

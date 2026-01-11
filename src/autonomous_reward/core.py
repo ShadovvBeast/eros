@@ -185,13 +185,14 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             elegance_reward = self.error_handler.handle_reward_overflow(elegance_reward, "elegance")
             emergence_reward = self.error_handler.handle_reward_overflow(emergence_reward, "emergence")
             
-            # Combine all reward components with POSITIVE BIAS to prevent negative cycles
+            # Combine all reward components with REDUCED positive bias
+            # The main positive signal should come from successful tool interactions
             total_reward = (coherence_reward + growth_reward + integration_reward + 
                            elegance_reward + emergence_reward)
             
-            # ADD POSITIVE BIAS to prevent system from getting stuck in negative reward cycles
-            # This ensures the system can form attractors and escape fixed points
-            positive_bias = 0.5  # Base positive reward to encourage exploration
+            # Reduced positive bias - just enough to prevent complete stagnation
+            # but not so much that it masks failure signals
+            positive_bias = 0.2  # Reduced from 0.5 to 0.2
             total_reward += positive_bias
             
             total_reward = self.error_handler.handle_reward_overflow(total_reward, "total")
@@ -369,11 +370,23 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
         # Assess creativity score (simplified for now)
         creativity_score = self._assess_creativity_score(action_result)
         
-        # Compute total reward
-        total_reward = (success_level * 2.0 +  # High weight for success
-                       discovery_value * 1.5 +   # High weight for discovery
-                       connection_quality * 1.0 + # Medium weight for connection
-                       creativity_score * 1.2)    # High weight for creativity
+        # Compute total reward with proper failure handling
+        if action_result.success:
+            total_reward = (success_level * 2.0 +  # High weight for success
+                           discovery_value * 1.5 +   # High weight for discovery
+                           connection_quality * 1.0 + # Medium weight for connection
+                           creativity_score * 1.2)    # High weight for creativity
+        else:
+            # FAILURE PENALTY: Failed actions should have negative or near-zero reward
+            # This ensures the agent learns to avoid actions that fail
+            failure_penalty = -1.5  # Significant negative signal for failures
+            
+            # Small positive for attempting (encourages exploration) but net negative
+            attempt_bonus = 0.3
+            
+            total_reward = failure_penalty + attempt_bonus  # Net: -1.2
+            
+            logger.debug(f"Tool {action_type} failed - applying failure penalty: {total_reward:.4f}")
         
         world_interaction_result = WorldInteractionResult(
             action_type=action_type,

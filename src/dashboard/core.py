@@ -77,7 +77,7 @@ except ImportError:
         
         class SessionConfig:
             def __init__(self):
-                self.duration_minutes = 5.0
+                self.duration_minutes = -1.0  # -1 means infinite (no time limit)
                 self.agent_identity = "Test Agent"
                 self.pathos_dimension = 128
                 self.exploration_rate = 0.1
@@ -131,7 +131,7 @@ class InteractiveDashboard:
         
         # Session configuration
         self.session_config = SessionConfig()
-        self.session_config.duration_minutes = 5.0
+        self.session_config.duration_minutes = -1.0  # -1 means infinite (no time limit)
         self.session_config.agent_identity = "Autonomous Agent"
         self.session_config.pathos_dimension = 128
         self.session_config.exploration_rate = 0.1

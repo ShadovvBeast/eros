@@ -16,8 +16,10 @@ import json
 
 try:
     import GPUtil
+    # Test if GPUtil actually works (may fail on Python 3.12+ due to distutils removal)
+    GPUtil.getGPUs()
     GPU_AVAILABLE = True
-except ImportError:
+except (ImportError, ModuleNotFoundError, Exception):
     GPU_AVAILABLE = False
 
 try:
@@ -25,6 +27,16 @@ try:
     NVIDIA_ML_AVAILABLE = True
 except ImportError:
     NVIDIA_ML_AVAILABLE = False
+
+# Windows WMI fallback for GPU detection
+WMI_AVAILABLE = False
+try:
+    import subprocess
+    import platform
+    if platform.system() == 'Windows':
+        WMI_AVAILABLE = True
+except ImportError:
+    pass
 
 
 class HardwareMonitor:
@@ -52,7 +64,7 @@ class HardwareMonitor:
         self.history_length = history_length
         self.is_monitoring = False
         self.monitor_thread = None
-        self.update_interval = 0.5  # seconds - optimized for efficiency
+        self.update_interval = 0.5  # seconds - optimized for efficiency without blocking agent
         
         # Data storage
         self.cpu_history = deque(maxlen=history_length)
@@ -138,7 +150,15 @@ class HardwareMonitor:
                     ]
                 except:
                     info['gpus'] = []
-            else:
+            
+            # WMI fallback for GPU info on Windows
+            if not info.get('gpus') and WMI_AVAILABLE:
+                try:
+                    info['gpus'] = self._get_gpu_via_wmi()
+                except:
+                    info['gpus'] = []
+            
+            if not info.get('gpus'):
                 info['gpus'] = []
             
             return info
@@ -331,6 +351,7 @@ class HardwareMonitor:
                 'gpus': []
             }
             
+            # Try GPUtil first (NVIDIA GPUs)
             if self.gpu_available:
                 try:
                     gpus = GPUtil.getGPUs()
@@ -339,21 +360,42 @@ class HardwareMonitor:
                             'id': gpu.id,
                             'name': gpu.name,
                             'load': gpu.load * 100,
+                            'utilization': gpu.load * 100,  # Alias for compatibility
                             'memory_used': gpu.memoryUsed,
                             'memory_total': gpu.memoryTotal,
-                            'memory_percent': (gpu.memoryUsed / gpu.memoryTotal) * 100,
+                            'memory_percent': (gpu.memoryUsed / gpu.memoryTotal) * 100 if gpu.memoryTotal > 0 else 0,
                             'temperature': gpu.temperature
                         }
                         gpu_data['gpus'].append(gpu_info)
                 except Exception as e:
-                    gpu_data['error'] = str(e)
+                    gpu_data['gputil_error'] = str(e)
             
-            # Additional NVIDIA-specific metrics
+            # Additional NVIDIA-specific metrics via NVML
             if self.nvidia_ml_available:
                 try:
                     device_count = nvml.nvmlDeviceGetCount()
                     for i in range(device_count):
                         handle = nvml.nvmlDeviceGetHandleByIndex(i)
+                        
+                        # If GPUtil didn't find this GPU, add it
+                        if i >= len(gpu_data['gpus']):
+                            try:
+                                name = nvml.nvmlDeviceGetName(handle)
+                                if isinstance(name, bytes):
+                                    name = name.decode('utf-8')
+                                util = nvml.nvmlDeviceGetUtilizationRates(handle)
+                                mem_info = nvml.nvmlDeviceGetMemoryInfo(handle)
+                                gpu_data['gpus'].append({
+                                    'id': i,
+                                    'name': name,
+                                    'load': util.gpu,
+                                    'utilization': util.gpu,
+                                    'memory_used': mem_info.used / (1024**2),  # Convert to MB
+                                    'memory_total': mem_info.total / (1024**2),
+                                    'memory_percent': (mem_info.used / mem_info.total) * 100 if mem_info.total > 0 else 0
+                                })
+                            except:
+                                pass
                         
                         # Power usage
                         try:
@@ -376,10 +418,138 @@ class HardwareMonitor:
                 except Exception as e:
                     gpu_data['nvidia_error'] = str(e)
             
+            # Windows WMI fallback for any GPU (including Intel/AMD integrated)
+            if not gpu_data['gpus'] and WMI_AVAILABLE:
+                try:
+                    gpu_data['gpus'] = self._get_gpu_via_wmi()
+                except Exception as e:
+                    gpu_data['wmi_error'] = str(e)
+            
             return gpu_data
             
         except Exception as e:
             return {'timestamp': timestamp.isoformat(), 'error': str(e)}
+    
+    def _get_gpu_via_wmi(self) -> List[Dict[str, Any]]:
+        """Get GPU information via Windows WMI (fallback method)"""
+        gpus = []
+        try:
+            # First try nvidia-smi for accurate NVIDIA GPU info
+            nvidia_gpus = self._get_nvidia_gpu_via_smi()
+            
+            # Use PowerShell to query WMI for all GPU info
+            cmd = 'powershell -Command "Get-CimInstance -ClassName Win32_VideoController | Select-Object Name, AdapterRAM, DriverVersion, Status | ConvertTo-Json"'
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=10)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                import json
+                data = json.loads(result.stdout)
+                
+                # Handle single GPU (dict) or multiple GPUs (list)
+                if isinstance(data, dict):
+                    data = [data]
+                
+                for idx, gpu in enumerate(data):
+                    if gpu.get('Name'):
+                        gpu_name = gpu.get('Name', 'Unknown GPU')
+                        
+                        # Check if we have nvidia-smi data for this GPU
+                        nvidia_match = None
+                        for ng in nvidia_gpus:
+                            if 'NVIDIA' in gpu_name or 'GeForce' in gpu_name or 'RTX' in gpu_name:
+                                if ng['name'] in gpu_name or gpu_name in ng['name']:
+                                    nvidia_match = ng
+                                    break
+                        
+                        if nvidia_match:
+                            # Use nvidia-smi data (more accurate)
+                            gpus.append({
+                                'id': idx,
+                                'name': nvidia_match['name'],
+                                'utilization': nvidia_match['utilization'],
+                                'load': nvidia_match['utilization'],
+                                'memory_total': nvidia_match['memory_total'],
+                                'memory_used': nvidia_match.get('memory_used', 0),
+                                'memory_percent': nvidia_match.get('memory_percent', 0),
+                                'driver': gpu.get('DriverVersion', 'Unknown'),
+                                'status': gpu.get('Status', 'Unknown')
+                            })
+                        else:
+                            # Use WMI data for non-NVIDIA GPUs (Intel, AMD)
+                            utilization = self._get_gpu_utilization_wmi(gpu_name)
+                            
+                            adapter_ram = gpu.get('AdapterRAM', 0)
+                            # AdapterRAM can overflow on 32-bit, estimate for integrated GPUs
+                            if adapter_ram and adapter_ram > 0:
+                                memory_mb = adapter_ram / (1024 * 1024)
+                            else:
+                                memory_mb = 0
+                            
+                            # Intel integrated typically shares system RAM
+                            if 'Intel' in gpu_name and memory_mb > 4096:
+                                memory_mb = 2048  # Typical shared memory allocation
+                            
+                            gpus.append({
+                                'id': idx,
+                                'name': gpu_name,
+                                'utilization': utilization,
+                                'load': utilization,
+                                'memory_total': memory_mb,
+                                'memory_used': 0,
+                                'memory_percent': 0,
+                                'driver': gpu.get('DriverVersion', 'Unknown'),
+                                'status': gpu.get('Status', 'Unknown')
+                            })
+        except Exception as e:
+            pass
+        
+        return gpus
+    
+    def _get_nvidia_gpu_via_smi(self) -> List[Dict[str, Any]]:
+        """Get NVIDIA GPU info via nvidia-smi (most accurate)"""
+        nvidia_gpus = []
+        try:
+            cmd = 'nvidia-smi --query-gpu=name,memory.total,memory.used,utilization.gpu --format=csv,noheader,nounits'
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=5)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                for line in result.stdout.strip().split('\n'):
+                    parts = [p.strip() for p in line.split(',')]
+                    if len(parts) >= 4:
+                        name = parts[0]
+                        mem_total = float(parts[1])  # Already in MiB
+                        mem_used = float(parts[2])
+                        util = float(parts[3])
+                        
+                        nvidia_gpus.append({
+                            'name': name,
+                            'memory_total': mem_total,
+                            'memory_used': mem_used,
+                            'memory_percent': (mem_used / mem_total * 100) if mem_total > 0 else 0,
+                            'utilization': util
+                        })
+        except Exception:
+            pass
+        
+        return nvidia_gpus
+    
+    def _get_gpu_utilization_wmi(self, gpu_name: str) -> float:
+        """Try to get GPU utilization via Windows performance counters"""
+        try:
+            # Try to get GPU engine utilization
+            cmd = 'powershell -Command "(Get-Counter \'\\GPU Engine(*)\\Utilization Percentage\' -ErrorAction SilentlyContinue).CounterSamples | Where-Object {$_.CookedValue -gt 0} | Measure-Object -Property CookedValue -Sum | Select-Object -ExpandProperty Sum"'
+            result = subprocess.run(cmd, capture_output=True, text=True, shell=True, timeout=5)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                try:
+                    utilization = float(result.stdout.strip())
+                    return min(utilization, 100.0)  # Cap at 100%
+                except ValueError:
+                    pass
+        except:
+            pass
+        
+        return 0.0
     
     def _get_temperature_metrics(self, timestamp: datetime) -> Dict[str, Any]:
         """Get temperature metrics"""

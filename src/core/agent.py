@@ -11,6 +11,7 @@ import numpy as np
 from .config import AgentConfig
 from .models import PathosState, SemanticVector, MemoryTrace, Intention, ToolCall, ToolResult
 from ..logos.interfaces import LogosLayer
+from ..logos.introspection import IntrospectionEngine, IntrospectiveState
 from ..pathos.interfaces import PathosLayer
 from ..memory.interfaces import MemorySystem
 from ..ethos.interfaces import EthosFramework
@@ -25,6 +26,8 @@ class AutonomousAgent:
     """
     Main agent class implementing the continuous operation loop:
     Logos → Pathos → Memory → Tool execution
+    
+    Uses genuine introspection for self-aware, articulate behavior.
     """
     
     def __init__(self, config: AgentConfig, instrumentation=None):
@@ -42,6 +45,9 @@ class AutonomousAgent:
         
         # Initialize autonomous reward system
         self.autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None
+        
+        # Initialize introspection engine for genuine self-awareness
+        self.introspection: Optional[IntrospectionEngine] = None
         
         logger.info("Agent initialized")
     
@@ -62,6 +68,11 @@ class AutonomousAgent:
             self.logos.set_autonomous_reward_system(autonomous_reward_system)
             logger.info("Autonomous reward system integrated with Pathos and Logos layers")
         
+        # Initialize introspection engine with model provider from logos
+        model_provider = getattr(logos, 'model_provider', None)
+        self.introspection = IntrospectionEngine(model_provider)
+        logger.info("Introspection engine initialized for genuine self-awareness")
+        
         # Register tool result callbacks for layer integration
         self.tools.register_result_callback(self._handle_tool_result)
         
@@ -69,7 +80,7 @@ class AutonomousAgent:
     
     def run_cycle(self) -> Dict[str, Any]:
         """
-        Execute one complete agent cycle.
+        Execute one complete agent cycle with genuine introspection.
         
         Returns:
             Dictionary containing cycle results and metrics
@@ -82,54 +93,58 @@ class AutonomousAgent:
         phase_timings = {}
         
         try:
-            # Phase 1: Logos interpretation and intention generation
+            # Phase 1: Introspection and intention generation
             phase_start = time.time()
             recent_memories = self.memory.get_recent_traces(self.config.pathos.memory_retrieval_k)
             semantic_vector = self.logos.interpret_state(self.pathos.current_state, recent_memories)
             
-            # Always use enhanced LLM-based intention generation for dynamic, autonomous behavior
-            # This ensures the agent generates varied, creative intentions based on its current state
-            import os
-            debug_mode = os.getenv('CYCLE_LOGOS_DEBUGGING', 'false').lower() == 'true'
+            # Use genuine introspection for self-aware intention generation
+            introspective_state = None
+            genuine_thought = None
             
-            if debug_mode:
-                # Store current cycle for debugging context
-                if hasattr(self.logos, '_current_cycle'):
-                    self.logos._current_cycle = self.cycle_count
-                else:
-                    setattr(self.logos, '_current_cycle', self.cycle_count)
+            if self.introspection:
+                # Analyze current state for genuine self-understanding
+                introspective_state = self.introspection.analyze_pathos_state(self.pathos.current_state)
+                
+                # Generate genuine, articulate thought
+                available_tools = self.tools.get_available_tools() if self.tools else []
+                genuine_thought = self.introspection.generate_thought(
+                    introspective_state,
+                    semantic_vector.semantic_category,
+                    recent_memories,
+                    available_tools
+                )
             
-            # Use our cryptographic intention generation as primary method
-            # It's mathematically elegant, guaranteed unique, and always works
-            intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
-            logger.debug("Using cryptographic intention generation (primary method)")
-            
-            # Only try enhanced LLM generation if specifically enabled via environment variable
-            if os.getenv('USE_LLM_ENHANCEMENT', 'false').lower() == 'true':
-                try:
-                    llm_intention = self.logos.generate_enhanced_intention_with_llm(
-                        semantic_vector, self.pathos.current_state, recent_memories
-                    )
-                    
-                    # Use LLM enhancement if successful
-                    intention = llm_intention
-                    logger.debug("Enhanced intention with LLM (optional enhancement enabled)")
-                        
-                except Exception as e:
-                    # Continue with cryptographic intention if LLM fails
-                    logger.debug(f"LLM enhancement failed ({e}), continuing with cryptographic intention")
+            # Create intention with genuine thought or fallback to logos
+            if genuine_thought:
+                # Use the genuine introspective thought as the intention
+                intention = Intention(
+                    description=genuine_thought,
+                    semantic_vector=semantic_vector,
+                    priority=self.logos._compute_intention_priority(semantic_vector, self.pathos.current_state),
+                    tool_candidates=self.logos._select_tool_candidates(semantic_vector.semantic_category)
+                )
+                logger.debug("Using genuine introspective thought")
+            else:
+                # Fallback to logos-based generation
+                intention = self.logos.generate_intention(semantic_vector, self.pathos.current_state)
+                logger.debug("Using logos-based intention generation")
             
             interest_signal = self.logos.compute_interest_signal(semantic_vector)
             phase_timings['logos'] = time.time() - phase_start
             
-            # Create a "thinking" prompt-like log entry
-            thinking_prompt = self._generate_thinking_prompt(semantic_vector, self.pathos.current_state, recent_memories)
-            logger.debug(f"Cycle {self.cycle_count} - Agent Reasoning", 
-                        thinking_prompt=thinking_prompt,
-                        semantic_category=semantic_vector.semantic_category,
-                        interest_signal=f"{interest_signal:.3f}",
-                        recent_memories_count=len(recent_memories),
-                        intention_preview=intention.description[:80])
+            # Log the agent's genuine thinking
+            if introspective_state:
+                logger.debug(f"Cycle {self.cycle_count} - Agent State", 
+                            mood=introspective_state.current_mood,
+                            energy=f"{introspective_state.energy_level:.0%}",
+                            focus=introspective_state.focus_area,
+                            drive=introspective_state.primary_drive)
+            
+            logger.debug(f"Cycle {self.cycle_count} - Agent Thought", 
+                        thought=intention.description,
+                        category=semantic_vector.semantic_category,
+                        interest=f"{interest_signal:.3f}")
             
             # Phase 2: Ethos validation
             phase_start = time.time()
@@ -298,11 +313,35 @@ class AutonomousAgent:
                     }
                 )
                 
-                # Add rich context fields for dashboard display
-                memory_trace.state = f"Pathos state: magnitude={np.linalg.norm(new_state):.3f}, complexity={self._compute_state_complexity(new_state):.3f}"
-                memory_trace.action = tool_call.tool_name if tool_call else "internal_processing"
-                memory_trace.observation = f"Tool result: {tool_result.success if tool_result else 'N/A'}, External reward: {external_reward:.3f}"
-                memory_trace.reflection = f"Internal reward: {internal_reward:.3f}, Salience: {salience:.3f}, Category: {semantic_vector.semantic_category}"
+                # Generate genuine, articulate memory fields using introspection
+                if self.introspection and introspective_state:
+                    # State: Genuine description of internal state
+                    memory_trace.state = introspective_state.to_prompt_context()
+                    
+                    # Action: What was done
+                    memory_trace.action = tool_call.tool_name if tool_call else "internal reflection"
+                    
+                    # Observation: What happened (using introspection)
+                    if tool_result:
+                        memory_trace.observation = self.introspection.generate_observation(
+                            tool_result, tool_call.tool_name if tool_call else "action"
+                        )
+                    else:
+                        memory_trace.observation = f"Processed internally. Reward: {external_reward:.2f}"
+                    
+                    # Reflection: Genuine reflection on the experience
+                    memory_trace.reflection = self.introspection.generate_reflection(
+                        tool_call.tool_name if tool_call else "internal processing",
+                        tool_result,
+                        total_reward,
+                        introspective_state
+                    )
+                else:
+                    # Fallback to basic fields
+                    memory_trace.state = f"Energy: {np.linalg.norm(new_state):.1f}, Focus: {semantic_vector.semantic_category}"
+                    memory_trace.action = tool_call.tool_name if tool_call else "internal_processing"
+                    memory_trace.observation = f"Result: {'success' if tool_result and tool_result.success else 'N/A'}"
+                    memory_trace.reflection = f"Reward: {total_reward:.2f}, Salience: {salience:.2f}"
                 
                 self.memory.store_trace(memory_trace)
                 logger.debug(f"Cycle {self.cycle_count} - Memory stored", 
@@ -408,8 +447,9 @@ class AutonomousAgent:
                 
                 logger.debug("Cycle completed", **cycle_result)
                 
-                # Sleep between cycles
-                time.sleep(self.config.cycle_interval_seconds)
+                # Only sleep if cycle_interval_seconds > 0 (for throttling if needed)
+                if self.config.cycle_interval_seconds > 0:
+                    time.sleep(self.config.cycle_interval_seconds)
                 
         except KeyboardInterrupt:
             logger.info("Autonomous operation interrupted by user")

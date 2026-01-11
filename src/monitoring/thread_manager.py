@@ -71,7 +71,7 @@ class ThreadManager:
         # Monitoring
         self.monitor_thread: Optional[threading.Thread] = None
         self.monitoring_active = False
-        self.monitoring_interval = 0.5  # seconds - optimized for efficiency
+        self.monitoring_interval = 0.5  # seconds - runs in separate thread, doesn't block agent
         
         # Statistics
         self.stats = {

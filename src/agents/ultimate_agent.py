@@ -39,8 +39,13 @@ except ImportError:
 class UltimateAutonomousAgent:
     """Ultimate autonomous agent with time-based operation and full capabilities"""
     
-    def __init__(self, duration_minutes: float = 5.0):
-        """Initialize ultimate agent."""
+    def __init__(self, duration_minutes: float = -1.0):
+        """
+        Initialize ultimate agent.
+        
+        Args:
+            duration_minutes: Duration to run in minutes. -1 means infinite (run until stopped).
+        """
         self.duration_minutes = duration_minutes
         self.config = AgentConfig()
         self.collector = InstrumentationCollector()
@@ -66,7 +71,10 @@ class UltimateAutonomousAgent:
         """Initialize the ultimate agent."""
         print("🎯 ULTIMATE AUTONOMOUS AGENT")
         print("=" * 60)
-        print(f"⏱️  Duration: {self.duration_minutes} minutes")
+        if self.duration_minutes > 0:
+            print(f"⏱️  Duration: {self.duration_minutes} minutes")
+        else:
+            print(f"⏱️  Duration: INFINITE (until stopped)")
         print(f"🔧 Full tool access enabled")
         print(f"📊 Comprehensive monitoring active")
         print("=" * 60)
@@ -122,25 +130,32 @@ class UltimateAutonomousAgent:
             print(f"⚠️ Visualization initialization warning: {e}")
     
     def run(self):
-        """Run the ultimate agent for the specified duration."""
+        """Run the ultimate agent for the specified duration (or infinitely if duration_minutes <= 0)."""
         if not self.agent:
             self.initialize()
         
         self.start_time = datetime.now()
-        self.end_time = self.start_time + timedelta(minutes=self.duration_minutes)
+        # Only set end_time if duration is positive (not infinite)
+        if self.duration_minutes > 0:
+            self.end_time = self.start_time + timedelta(minutes=self.duration_minutes)
+        else:
+            self.end_time = None  # No end time - runs forever
         self.is_running = True
         
         print(f"\n🚀 Starting ultimate agent operation...")
         print(f"📅 Start time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"⏰ End time: {self.end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        if self.end_time:
+            print(f"⏰ End time: {self.end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            print(f"⏰ End time: NONE (runs until stopped)")
         
         try:
             # Start monitoring thread
             monitor_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
             monitor_thread.start()
             
-            # Main operation loop
-            while self.is_running and datetime.now() < self.end_time:
+            # Main operation loop - runs forever if end_time is None
+            while self.is_running and (self.end_time is None or datetime.now() < self.end_time):
                 cycle_start = time.time()
                 
                 # Run agent cycle

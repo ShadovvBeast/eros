@@ -418,10 +418,9 @@ class RewardSystemErrorHandler:
             elegance_reward = self.handle_reward_overflow(state_reward.elegance_reward, "elegance")
             emergence_reward = self.handle_reward_overflow(state_reward.emergence_reward, "emergence")
             
-            # Recalculate total reward
-            total_reward = (coherence_reward + growth_reward + integration_reward + 
-                          elegance_reward + emergence_reward)
-            total_reward = self.handle_reward_overflow(total_reward, "total")
+            # Validate total_reward (preserve the original which may include bias)
+            # Only recalculate if the original total_reward is invalid
+            total_reward = self.handle_reward_overflow(state_reward.total_reward, "total")
             
             return StateReward(
                 coherence_reward=coherence_reward,

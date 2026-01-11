@@ -123,9 +123,9 @@ class StateDerivedRewardGenerator(StateDerivedRewardGeneratorInterface):
             # Reduced reward below threshold
             coherence_reward = coherence_score * self.coherence_weight * 0.5
         
-        # ADD POSITIVE BIAS to prevent negative coherence rewards
-        # This ensures coherence always contributes positively to the total reward
-        coherence_reward += 0.3  # Base positive coherence reward
+        # Reduced positive bias - only add minimal bias to prevent complete stagnation
+        # The main positive signal should come from successful actions, not state bias
+        coherence_reward += 0.1  # Reduced from 0.3 to 0.1
         
         # Store in history for pattern analysis
         self.coherence_history.append(coherence_score)
@@ -231,9 +231,9 @@ class StateDerivedRewardGenerator(StateDerivedRewardGeneratorInterface):
         
         growth_reward = smoothed_growth * self.growth_weight
         
-        # ADD POSITIVE BIAS to prevent negative growth rewards
-        # This ensures growth always contributes positively to the total reward
-        growth_reward += 0.2  # Base positive growth reward
+        # Reduced positive bias - only add minimal bias to prevent complete stagnation
+        # The main positive signal should come from successful actions, not state bias
+        growth_reward += 0.1  # Reduced from 0.2 to 0.1
         
         # Store in history
         self.growth_history.append(raw_growth)

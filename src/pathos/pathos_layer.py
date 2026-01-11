@@ -200,9 +200,9 @@ class PathosLayer(PathosLayerInterface):
         # This ensures the system never gets completely stuck
         exploration_noise = 0.05 * np.random.normal(0, 1, self.config.state_dimension)
         
-        # ADD POSITIVE BIAS to encourage positive rewards and attractor formation
-        # This helps break out of negative reward cycles
-        positive_bias = 0.02 * np.ones(self.config.state_dimension)
+        # Reduced positive bias - just enough to prevent complete stagnation
+        # but not so much that it masks failure signals from tool interactions
+        positive_bias = 0.01 * np.ones(self.config.state_dimension)  # Reduced from 0.02 to 0.01
         
         # Combine all impulse components
         total_impulse = (semantic_impulse + state_modulation + 
@@ -246,38 +246,58 @@ class PathosLayer(PathosLayerInterface):
         """
         Apply nonlinear squashing function g(·) to keep state bounded while preserving natural dynamics.
         
+        OPTIMIZED: Enhanced dynamic range with oscillatory preservation to prevent premature equilibrium.
+        
         Args:
             raw_state: Raw state update before squashing
             
         Returns:
-            Squashed state vector that preserves natural magnitude scaling
+            Squashed state vector that preserves natural magnitude scaling and oscillatory dynamics
         """
-        # SOLUTION: Use adaptive squashing that preserves natural dynamics
-        # Instead of hard tanh constraint, use soft exponential decay for large values
-        
         # Compute current magnitude to understand scale
         magnitude = np.linalg.norm(raw_state)
         
+        # OPTIMIZATION: Add micro-perturbation to prevent exact equilibrium
+        # This ensures the system never gets completely stuck at a fixed point
+        micro_perturbation = np.random.normal(0, 0.01, len(raw_state))
+        raw_state = raw_state + micro_perturbation
+        
         # For small magnitudes (< 5), use minimal squashing to preserve natural dynamics
         if magnitude < 5.0:
-            return raw_state * 0.95  # Very light constraint
+            return raw_state * 0.98  # Very light constraint
         
-        # For medium magnitudes (5-15), use gentle exponential scaling
-        elif magnitude < 15.0:
+        # For medium magnitudes (5-12), use gentle exponential scaling with oscillation preservation
+        elif magnitude < 12.0:
             # Preserve direction but gently scale magnitude
             direction = raw_state / (magnitude + 1e-8)
-            # Use exponential decay: new_mag = 5 + (mag-5) * exp(-(mag-5)/10)
+            
+            # OPTIMIZATION: Use softer exponential decay to allow more dynamic range
             excess = magnitude - 5.0
-            scaled_excess = excess * np.exp(-excess / 10.0)
-            new_magnitude = 5.0 + scaled_excess
+            # Slower decay rate (15.0 instead of 10.0) allows larger magnitudes
+            scaled_excess = excess * np.exp(-excess / 15.0)
+            new_magnitude = 5.0 + scaled_excess * 1.5  # Amplify growth
+            
+            # Add oscillatory component to prevent equilibrium
+            oscillation = 0.1 * np.sin(magnitude * 0.5)
+            new_magnitude += oscillation
+            
             return direction * new_magnitude
         
-        # For very large magnitudes (>15), use stronger but still natural scaling
+        # For large magnitudes (12-20), use moderate scaling with preserved dynamics
+        elif magnitude < 20.0:
+            direction = raw_state / (magnitude + 1e-8)
+            # Gradual transition to maximum
+            max_magnitude = 18.0
+            transition_factor = (magnitude - 12.0) / 8.0  # 0 to 1 over range 12-20
+            new_magnitude = 12.0 + (max_magnitude - 12.0) * (1.0 - np.exp(-transition_factor * 2.0))
+            return direction * new_magnitude
+        
+        # For very large magnitudes (>20), use stronger but still natural scaling
         else:
             direction = raw_state / (magnitude + 1e-8)
             # Cap at reasonable maximum but preserve natural growth
             max_magnitude = 20.0
-            new_magnitude = max_magnitude * (1.0 - np.exp(-(magnitude - 15.0) / 5.0))
+            new_magnitude = max_magnitude * (1.0 - np.exp(-(magnitude - 20.0) / 5.0))
             return direction * new_magnitude
     
     def compute_internal_reward(self, current_state: np.ndarray, previous_state: np.ndarray) -> float:

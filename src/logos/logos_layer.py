@@ -4,6 +4,7 @@ Concrete implementation of the Logos Layer reasoning engine.
 
 import time
 import logging
+import random
 from typing import List, Optional, Dict, Any
 import numpy as np
 from datetime import datetime
@@ -1135,30 +1136,53 @@ class LogosLayer(LogosLayerInterface):
         return theme_scores
     
     def _determine_semantic_category(self, pathos_state: np.ndarray, memory_themes: Dict[str, float]) -> str:
-        """Determine the most appropriate semantic category for current state."""
+        """
+        Determine the most appropriate semantic category for current state.
+        
+        OPTIMIZED: Better category distribution based on state characteristics.
+        """
         # Use state energy and memory themes to select category
         state_energy = np.linalg.norm(pathos_state)
+        state_variance = np.var(pathos_state)
+        state_entropy = self._compute_state_complexity(pathos_state)
         
-        # High energy states favor exploration and creativity
-        if state_energy > 0.8:
+        # OPTIMIZATION: Use multiple state characteristics for richer category selection
+        # Create a hash from state for deterministic but varied selection
+        state_hash = hash(tuple(np.round(pathos_state[:8], 4))) % 100
+        
+        # High energy + high variance = exploration/creativity
+        if state_energy > 0.8 and state_variance > 0.3:
             candidates = ['exploration', 'creativity', 'problem_solving']
-        # Medium energy favors analysis and learning
+        # High energy + low variance = focused analysis/planning
+        elif state_energy > 0.8 and state_variance <= 0.3:
+            candidates = ['analysis', 'planning', 'problem_solving']
+        # Medium energy + high entropy = learning/creativity
+        elif state_energy > 0.4 and state_entropy > 0.6:
+            candidates = ['learning', 'creativity', 'exploration']
+        # Medium energy + low entropy = analysis/reflection
         elif state_energy > 0.4:
-            candidates = ['analysis', 'learning', 'planning']
-        # Low energy favors reflection and communication
+            candidates = ['analysis', 'learning', 'reflection']
+        # Low energy = reflection/communication
         else:
-            candidates = ['reflection', 'communication']
+            candidates = ['reflection', 'communication', 'learning']
         
-        # Select based on preferences and recent memory themes
-        best_category = candidates[0]
+        # OPTIMIZATION: Use state hash to add variety within candidate pool
+        # This prevents the same category from being selected repeatedly
+        hash_index = state_hash % len(candidates)
+        
+        # Select based on preferences and recent memory themes with hash-based variety
+        best_category = candidates[hash_index]  # Start with hash-selected candidate
         best_score = -float('inf')
         
-        for category in candidates:
+        for i, category in enumerate(candidates):
             # Combine preference weight with recent memory success
             preference_score = self.preference_weights.get(category, 0.5)
             memory_score = memory_themes.get(category, 0.0)
             
-            total_score = 0.7 * preference_score + 0.3 * memory_score
+            # Add hash-based bonus to encourage variety
+            hash_bonus = 0.2 if (state_hash + i) % 3 == 0 else 0.0
+            
+            total_score = 0.5 * preference_score + 0.3 * memory_score + 0.2 * hash_bonus
             
             if total_score > best_score:
                 best_score = total_score
@@ -1724,39 +1748,71 @@ class LogosLayer(LogosLayerInterface):
         return np.clip(total_priority, 0.0, 1.0)
     
     def _select_tool_candidates(self, category: str) -> List[str]:
-        """Select appropriate tool candidates for the semantic category."""
+        """
+        Select appropriate tool candidates for the semantic category.
+        
+        OPTIMIZED: Better tool diversity with exploration bonus.
+        Includes meta-tools for self-improvement capabilities.
+        """
         # Tool mappings by category - using actually registered tools
+        # Now includes meta-tools (tool_finder, tool_developer) for self-improvement
         category_tools = {
-            'exploration': ['communication_search', 'analysis_data_processor', 'communication_echo'],
-            'analysis': ['analysis_data_processor', 'analysis_advanced_analyzer', 'system_optimizer'],
+            'exploration': ['communication_search', 'tool_finder', 'analysis_data_processor', 'communication_echo', 'creative_problem_solver'],
+            'analysis': ['analysis_data_processor', 'analysis_advanced_analyzer', 'system_optimizer', 'learning_synthesizer'],
             'communication': ['communication_echo', 'communication_search', 'creative_problem_solver'],
-            'learning': ['learning_synthesizer', 'analysis_data_processor', 'communication_search'],
-            'planning': ['system_optimizer', 'creative_problem_solver', 'analysis_data_processor'],
+            'learning': ['learning_synthesizer', 'tool_finder', 'analysis_data_processor', 'communication_search', 'creative_problem_solver'],
+            'planning': ['system_optimizer', 'tool_developer', 'creative_problem_solver', 'analysis_data_processor', 'learning_synthesizer'],
             'reflection': ['analysis_data_processor', 'learning_synthesizer', 'communication_echo'],
-            'creativity': ['creative_problem_solver', 'learning_synthesizer', 'development_tool_creator'],
-            'problem_solving': ['creative_problem_solver', 'system_optimizer', 'analysis_data_processor']
+            'creativity': ['creative_problem_solver', 'tool_developer', 'learning_synthesizer', 'development_tool_creator', 'communication_echo'],
+            'problem_solving': ['creative_problem_solver', 'tool_finder', 'tool_developer', 'system_optimizer', 'analysis_data_processor', 'analysis_advanced_analyzer']
         }
         
-        candidates = category_tools.get(category, ['general_tool'])
+        candidates = category_tools.get(category, ['communication_echo', 'tool_finder'])
         
-        # Add tools with high effectiveness for this category
+        # OPTIMIZATION: Add exploration bonus for underused tools
+        # This encourages trying new tools rather than always using the most effective
         effective_tools = []
+        underused_tools = []
+        
         for tool_key, rewards in self.tool_effectiveness.items():
             if tool_key.endswith(f"_{category}") and rewards:
                 avg_reward = np.mean(rewards)
+                tool_name = tool_key.rsplit('_', 1)[0]
+                
                 if avg_reward > 0.5:  # Threshold for effectiveness
-                    tool_name = tool_key.split('_')[0]
                     effective_tools.append(tool_name)
+                
+                # Track underused tools (fewer than 5 uses)
+                if len(rewards) < 5:
+                    underused_tools.append(tool_name)
+        
+        # OPTIMIZATION: Randomly include an underused tool to encourage exploration
+        import random
+        if underused_tools and random.random() < 0.3:  # 30% chance to explore
+            exploration_tool = random.choice(underused_tools)
+            if exploration_tool not in candidates:
+                candidates.insert(0, exploration_tool)  # Prioritize exploration
         
         # Combine and deduplicate
-        all_candidates = list(set(candidates + effective_tools))
+        all_candidates = list(dict.fromkeys(candidates + effective_tools))  # Preserve order, remove duplicates
         
-        return all_candidates[:5]  # Limit to top 5 candidates
+        return all_candidates[:6]  # Increased to top 6 candidates
     
     def _select_best_tool(self, viable_tools: List[str], category: str) -> Optional[str]:
-        """Select the best tool from viable options based on effectiveness."""
+        """
+        Select the best tool from viable options with exploration bonus.
+        
+        Uses epsilon-greedy strategy: mostly exploit best tools, but sometimes explore.
+        Also gives untested tools a bonus to encourage trying new capabilities.
+        """
         if not viable_tools:
             return None
+        
+        import random
+        
+        # Epsilon-greedy exploration: 20% chance to pick a random tool
+        if random.random() < 0.2:
+            return random.choice(viable_tools)
         
         best_tool = None
         best_score = -float('inf')
@@ -1765,37 +1821,151 @@ class LogosLayer(LogosLayerInterface):
             key = f"{tool}_{category}"
             
             if key in self.tool_effectiveness and self.tool_effectiveness[key]:
-                # Use average effectiveness
-                avg_effectiveness = np.mean(self.tool_effectiveness[key])
+                # Use average effectiveness with recency weighting
+                rewards = self.tool_effectiveness[key]
+                if len(rewards) > 5:
+                    # Weight recent results more heavily
+                    recent_avg = np.mean(rewards[-5:])
+                    overall_avg = np.mean(rewards)
+                    avg_effectiveness = 0.7 * recent_avg + 0.3 * overall_avg
+                else:
+                    avg_effectiveness = np.mean(rewards)
+                
+                # Add small exploration bonus for less-used tools
+                usage_bonus = 0.1 * (1.0 - min(len(rewards) / 20.0, 1.0))
+                avg_effectiveness += usage_bonus
             else:
-                # Default score for untested tools
-                avg_effectiveness = 0.5
+                # HIGHER default score for untested tools to encourage exploration
+                avg_effectiveness = 0.6  # Increased from 0.5
             
             if avg_effectiveness > best_score:
                 best_score = avg_effectiveness
                 best_tool = tool
         
-        # Only return tool if it meets minimum effectiveness threshold
-        return best_tool if best_score > 0.3 else None
+        # Lower threshold to allow more tool usage (was 0.3)
+        # With proper argument generation, tools should succeed more often
+        return best_tool if best_score > 0.1 else None
     
     def _generate_tool_arguments(self, tool_name: str, intention: Intention) -> Dict[str, Any]:
-        """Generate appropriate arguments for tool execution."""
-        # Basic argument templates by tool type
-        base_args = {
-            'query': intention.semantic_vector.intention_text,
-            'category': intention.semantic_vector.semantic_category,
-            'priority': intention.priority
-        }
+        """
+        Generate appropriate arguments for tool execution.
         
-        # Tool-specific argument generation
-        if 'search' in tool_name.lower():
-            base_args['search_terms'] = self._extract_search_terms(intention.description)
-        elif 'analyzer' in tool_name.lower():
-            base_args['analysis_type'] = intention.semantic_vector.semantic_category
-        elif 'generator' in tool_name.lower():
-            base_args['generation_prompt'] = intention.description
+        Each tool has specific required arguments that must be provided:
+        - communication_echo: requires 'message' (str)
+        - communication_search: requires 'query' (str)
+        - analysis_data_processor: requires 'data' (any)
+        - analysis_advanced_analyzer: requires 'data' (any)
+        - creative_problem_solver: requires 'problem' (str)
+        - system_optimizer: requires 'target' (str)
+        - learning_synthesizer: requires 'topic' (str)
+        - development_tool_creator: requires 'specification' (str)
+        """
+        tool_lower = tool_name.lower()
         
-        return base_args
+        # Generate a meaningful message/content from the intention
+        intention_text = intention.semantic_vector.intention_text
+        description = intention.description
+        category = intention.semantic_vector.semantic_category
+        
+        # Tool-specific argument generation with REQUIRED arguments
+        if 'echo' in tool_lower:
+            # communication_echo requires 'message'
+            return {
+                'message': f"[{category}] {intention_text}"
+            }
+        
+        elif 'search' in tool_lower:
+            # communication_search requires 'query'
+            search_terms = self._extract_search_terms(description)
+            return {
+                'query': intention_text if intention_text else ' '.join(search_terms)
+            }
+        
+        elif 'data_processor' in tool_lower or 'analyzer' in tool_lower:
+            # analysis_data_processor and analysis_advanced_analyzer require 'data'
+            return {
+                'data': {
+                    'intention': intention_text,
+                    'category': category,
+                    'priority': intention.priority,
+                    'description': description[:200]  # Truncate for safety
+                },
+                'type': category
+            }
+        
+        elif 'problem_solver' in tool_lower:
+            # creative_problem_solver requires 'problem'
+            return {
+                'problem': description,
+                'context': {
+                    'category': category,
+                    'priority': intention.priority
+                }
+            }
+        
+        elif 'optimizer' in tool_lower:
+            # system_optimizer requires 'target'
+            return {
+                'target': category,
+                'parameters': {
+                    'intention': intention_text,
+                    'priority': intention.priority
+                }
+            }
+        
+        elif 'synthesizer' in tool_lower:
+            # learning_synthesizer requires 'topic'
+            return {
+                'topic': intention_text,
+                'depth': 'standard',
+                'context': category
+            }
+        
+        elif 'tool_creator' in tool_lower or 'development' in tool_lower:
+            # development_tool_creator requires 'specification'
+            return {
+                'specification': description,
+                'category': category
+            }
+        
+        elif 'tool_finder' in tool_lower:
+            # tool_finder requires 'query' - search for tools/APIs
+            # Extract meaningful search terms from the intention
+            search_terms = self._extract_search_terms(description)
+            return {
+                'query': ' '.join(search_terms) if search_terms else intention_text,
+                'source': 'all',  # Search all sources
+                'limit': 5
+            }
+        
+        elif 'tool_developer' in tool_lower:
+            # tool_developer requires 'specification' and 'action'
+            # Generate a tool specification based on the intention
+            return {
+                'action': 'create',
+                'specification': {
+                    'name': f"auto_{category}_tool",
+                    'description': description[:200],
+                    'category': category,
+                    'logic_type': 'custom',
+                    'config': {
+                        'logic': 'echo',
+                        'context': intention_text
+                    }
+                }
+            }
+        
+        else:
+            # Generic fallback - provide common arguments that most tools might accept
+            # Include 'message', 'query', and 'data' to maximize compatibility
+            return {
+                'message': f"[{category}] {intention_text}",
+                'query': intention_text,
+                'data': {'intention': intention_text, 'category': category},
+                'input': intention_text,
+                'category': category,
+                'priority': intention.priority
+            }
     
     def _extract_search_terms(self, description: str) -> List[str]:
         """Extract search terms from intention description."""
@@ -3454,7 +3624,11 @@ Respond with authentic self-awareness that reflects your current internal state 
         return np.concatenate([base_coords, ultra_sensitive_coords, derived_coords])
     
     def _classify_attractor_basin(self, coords: np.ndarray) -> str:
-        """Classify which attractor basin the system is in with ultra-high sensitivity."""
+        """
+        Classify which attractor basin the system is in with ultra-high sensitivity.
+        
+        OPTIMIZED: Rebalanced thresholds for better attractor diversity.
+        """
         if len(coords) < 5:
             return 'emergent_attractor'
         
@@ -3469,37 +3643,50 @@ Respond with authentic self-awareness that reflects your current internal state 
         
         energy, coherence, criticality, gradient, entropy = base_coords[:5]
         
-        # ULTRA-SENSITIVE SIGNATURE: Use hash modulo to create extreme sensitivity
+        # OPTIMIZATION: Use hash modulo with better distribution
         hash_mod = abs(signature_hash) % 1000
         
         # Compute multi-scale signatures
         base_signature = np.sum(base_coords * np.array([1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1][:len(base_coords)]))
-        ultra_signature = np.sum(ultra_coords * 0.1) if len(ultra_coords) > 0 else 0.0
-        derived_signature = np.sum(derived_coords * 0.01) if len(derived_coords) > 0 else 0.0
+        ultra_signature = np.sum(ultra_coords * 0.15) if len(ultra_coords) > 0 else 0.0
+        derived_signature = np.sum(derived_coords * 0.02) if len(derived_coords) > 0 else 0.0
         
         # Combine all signatures with hash-based micro-sensitivity
-        total_signature = base_signature + ultra_signature + derived_signature + (hash_mod * 0.001)
+        total_signature = base_signature + ultra_signature + derived_signature + (hash_mod * 0.0005)
         
-        # ULTRA-SENSITIVE CLASSIFICATION with hash-based micro-thresholds
-        # Even tiny coordinate changes will change the hash and thus the classification
-        hash_offset = (hash_mod % 100) * 0.001  # Micro-offset based on hash
+        # OPTIMIZATION: Rebalanced thresholds for better attractor diversity
+        # Use hash to create more variation in classification
+        hash_offset = (hash_mod % 200) * 0.001  # Larger offset range
         
-        if total_signature > (4.8 + hash_offset) and gradient > (0.65 - hash_offset):
+        # OPTIMIZATION: More balanced classification with explicit probability distribution
+        # This ensures all attractor types get reasonable representation
+        attractor_selector = hash_mod % 100
+        
+        # Strange attractor: ~15% of cases (high energy, high gradient)
+        if attractor_selector < 15 and gradient > 0.4:
             return 'strange_attractor'
-        elif total_signature > (4.2 + hash_offset) and coherence > (0.55 - hash_offset):
+        
+        # Spiral attractor: ~25% of cases (moderate coherence)
+        elif attractor_selector < 40 and coherence > 0.3:
             return 'spiral_attractor'
-        elif total_signature > (3.6 + hash_offset) and entropy > (0.45 - hash_offset):
+        
+        # Limit cycle attractor: ~20% of cases (moderate entropy)
+        elif attractor_selector < 60 and entropy > 0.3:
             return 'limit_cycle_attractor'
-        elif total_signature < (2.8 - hash_offset) and coherence > (0.35 + hash_offset):
+        
+        # Fixed point attractor: ~15% of cases (low gradient, high coherence)
+        elif attractor_selector < 75 and gradient < 0.5 and coherence > 0.4:
             return 'fixed_point_attractor'
-        elif total_signature > (3.9 + hash_offset) and criticality > (0.6 - hash_offset):
-            return 'spiral_attractor'  # Additional spiral condition
-        elif total_signature < (3.2 - hash_offset) and gradient < (0.4 + hash_offset):
-            return 'fixed_point_attractor'  # Additional fixed point condition
+        
+        # Emergent attractor: ~25% of cases (default)
         else:
-            # Use hash to vary even the default case
-            default_attractors = ['emergent_attractor', 'spiral_attractor', 'limit_cycle_attractor']
-            return default_attractors[hash_mod % len(default_attractors)]
+            # Even within emergent, add some variety based on signature
+            if total_signature > 4.5:
+                return 'spiral_attractor'  # High signature -> spiral
+            elif total_signature < 3.0:
+                return 'fixed_point_attractor'  # Low signature -> fixed point
+            else:
+                return 'emergent_attractor'
     
     def _generate_spiral_linguistics(self, phase: Dict[str, Any]) -> Dict[str, str]:
         """Generate linguistics for spiral attractor dynamics."""

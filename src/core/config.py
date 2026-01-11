@@ -116,7 +116,8 @@ class ToolConfig:
         'system_operations', 'data_processing', 'web_operations',
         'development', 'creative_tools', 'optimization', 'automation',
         'research', 'experimentation', 'problem_solving', 'innovation',
-        'learning', 'exploration', 'adaptation', 'self_modification'
+        'learning', 'exploration', 'adaptation', 'self_modification',
+        'meta_tools', 'dynamic', 'custom'  # Meta-tools for self-improvement
     ])
 
 
@@ -243,7 +244,7 @@ class AgentConfig:
     autonomous_reward: AutonomousRewardConfig = field(default_factory=AutonomousRewardConfig)
     
     # Global agent settings
-    cycle_interval_seconds: float = 1.0
+    cycle_interval_seconds: float = 0.0  # No delay between cycles - maximum efficiency
     max_cycles: int = -1  # -1 for infinite
     log_level: str = 'INFO'
     enable_monitoring: bool = True
@@ -333,8 +334,8 @@ class AgentConfig:
             errors.append("tools.tool_timeout_seconds must be positive")
         
         # Validate global settings
-        if self.cycle_interval_seconds <= 0:
-            errors.append("cycle_interval_seconds must be positive")
+        if self.cycle_interval_seconds < 0:
+            errors.append("cycle_interval_seconds must be non-negative (0 for maximum speed)")
         if self.monitoring_port <= 0 or self.monitoring_port > 65535:
             errors.append("monitoring_port must be between 1 and 65535")
         

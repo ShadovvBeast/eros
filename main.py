@@ -40,8 +40,8 @@ Available modes:
     parser.add_argument(
         '--duration',
         type=int,
-        default=300,
-        help='Duration in seconds for autonomous modes (default: 300)'
+        default=-1,
+        help='Duration in seconds for autonomous modes (-1 for infinite, default: -1)'
     )
     
     args = parser.parse_args()

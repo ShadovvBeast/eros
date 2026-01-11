@@ -51,9 +51,10 @@ class SessionConfig:
     """Configuration for agent sessions"""
     
     def __init__(self):
-        # Session parameters
-        self.duration_minutes: float = 10.0
-        self.max_cycles: Optional[int] = None
+        # Session parameters - NO TIME LIMITS by default
+        # Sessions run until user clicks stop
+        self.duration_minutes: float = -1.0  # -1 means infinite (no time limit)
+        self.max_cycles: Optional[int] = None  # None means infinite (no cycle limit)
         # Cycle delay removed for maximum efficiency - threading system handles resource management
         
         # Agent configuration
@@ -447,14 +448,16 @@ class SessionManager:
                     time.sleep(0.01)  # Minimal pause check delay
                     continue
                 
-                # Check duration limit
-                elapsed_time = time.time() - start_time
-                if elapsed_time >= (self.config.duration_minutes * 60):
-                    print("Session duration limit reached")
-                    break
+                # Check duration limit (only if duration_minutes > 0)
+                # -1 or 0 means infinite - no time limit
+                if self.config.duration_minutes > 0:
+                    elapsed_time = time.time() - start_time
+                    if elapsed_time >= (self.config.duration_minutes * 60):
+                        print("Session duration limit reached")
+                        break
                 
-                # Check cycle limit
-                if self.config.max_cycles and cycle >= self.config.max_cycles:
+                # Check cycle limit (only if max_cycles is set and > 0)
+                if self.config.max_cycles and self.config.max_cycles > 0 and cycle >= self.config.max_cycles:
                     print("Session cycle limit reached")
                     break
                 
