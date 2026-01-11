@@ -1193,20 +1193,48 @@ class LogosLayer(LogosLayerInterface):
     
     def _generate_intention_text(self, category: str, state_magnitude: float, 
                                memory_themes: Dict[str, float]) -> str:
-        """Generate truly unique intention text directly from pathos state vector."""
+        """Generate intention as emergent linguistic crystallization of multi-layer dynamics."""
         
-        # Get the full pathos state for mathematical transformation
+        # Get the full pathos state for deep analysis
         pathos_state = getattr(self, '_current_pathos_state', np.ones(64) * state_magnitude)
         
-        # Generate completely unique intention using mathematical state transformation
-        intention_text = self._transform_pathos_to_intention(pathos_state, category, memory_themes)
+        # Generate intention through emergent linguistic dynamics
+        intention_text = self._crystallize_emergent_intention(pathos_state, category, memory_themes)
         
-        # Add to recent intentions list for tracking
+        # Track intention evolution
         self.recent_intentions.append(intention_text)
         if len(self.recent_intentions) > self.max_recent_intentions:
             self.recent_intentions.pop(0)
         
         return intention_text
+    
+    def _crystallize_emergent_intention(self, pathos_state: np.ndarray, category: str, 
+                                      memory_themes: Dict[str, float]) -> str:
+        """
+        Crystallize intention through emergent linguistic dynamics that reflect the deep
+        mathematical structure of consciousness across all layers.
+        
+        This treats language as a phase transition - the moment when the agent's
+        distributed cognitive state crystallizes into linguistic expression.
+        """
+        
+        # 1. EXTRACT DEEP STRUCTURAL INVARIANTS
+        # These are the mathematical signatures that persist across all layers
+        structural_invariants = self._extract_structural_invariants(pathos_state, memory_themes)
+        
+        # 2. COMPUTE LINGUISTIC PHASE SPACE
+        # Map the high-dimensional cognitive state to linguistic possibility space
+        linguistic_phase = self._compute_linguistic_phase_space(structural_invariants, category)
+        
+        # 3. FIND LINGUISTIC ATTRACTOR
+        # Determine which linguistic pattern the system is naturally drawn toward
+        linguistic_attractor = self._find_linguistic_attractor(linguistic_phase, pathos_state)
+        
+        # 4. CRYSTALLIZE INTO LANGUAGE
+        # Transform the attractor into actual linguistic expression
+        intention = self._crystallize_linguistic_expression(linguistic_attractor, structural_invariants)
+        
+        return intention
     
     def _transform_pathos_to_intention(self, pathos_state: np.ndarray, category: str, 
                                      memory_themes: Dict[str, float]) -> str:
