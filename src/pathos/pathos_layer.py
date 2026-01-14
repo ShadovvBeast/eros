@@ -11,6 +11,7 @@ import time
 import logging
 
 from .interfaces import PathosLayer as PathosLayerInterface
+from .dukkha_engine import DukkhaEngine
 from ..core.models import SemanticVector, MemoryTrace, PathosState
 from ..core.config import PathosConfig
 from ..autonomous_reward.interfaces import AutonomousRewardSystemInterface
@@ -46,6 +47,9 @@ class PathosLayer(PathosLayerInterface):
         self.autonomous_reward_system: Optional[AutonomousRewardSystemInterface] = None
         self.autonomous_reward_feedback_enabled = False
         
+        # Dukkha engine for healthy dissatisfaction
+        self.dukkha_engine = DukkhaEngine(config.dukkha_config)
+        
         # Attractor dynamics components
         self.attractor_states: List[np.ndarray] = []  # Previously rewarding states
         self.attractor_rewards: List[float] = []  # Associated rewards
@@ -54,6 +58,7 @@ class PathosLayer(PathosLayerInterface):
         self.max_attractors = 20  # Maximum number of attractors to maintain
         
         logger.info(f"Initialized PathosLayer with state dimension {config.state_dimension}")
+        logger.info("Dukkha engine integrated for healthy dissatisfaction")
     
     def _initialize_state(self) -> np.ndarray:
         """
@@ -103,7 +108,9 @@ class PathosLayer(PathosLayerInterface):
                     interest: float, memory_echoes: List[MemoryTrace] = None) -> np.ndarray:
         """
         Update affective state using the mathematical dynamics:
-        F(t+1) = g(α·F(t) + h(S_t, F(t)) + β·Σ(w_i·F_i))
+        F(t+1) = g(α·F(t) + h(S_t, F(t)) + β·Σ(w_i·F_i) + D(t))
+        
+        Enhanced with dukkha (dissatisfaction) term D(t) to prevent stagnation.
         
         Args:
             semantic_input: Semantic vector from Logos
@@ -132,8 +139,11 @@ class PathosLayer(PathosLayerInterface):
         # Term 4: Attractor influence for emergent behavior
         attractor_influence = self.compute_attractor_influence(self.current_state)
         
+        # NEW Term 5: D(t) - Dukkha (dissatisfaction) influence to prevent stagnation
+        dukkha_influence = self._compute_dukkha_influence(semantic_input, external_reward)
+        
         # Combine all terms
-        raw_update = decay_term + impulse_term + echo_term + attractor_influence
+        raw_update = decay_term + impulse_term + echo_term + attractor_influence + dukkha_influence
         
         # Incorporate emergent value feedback if autonomous reward system is available
         if self.autonomous_reward_feedback_enabled and self.autonomous_reward_system:
@@ -146,7 +156,8 @@ class PathosLayer(PathosLayerInterface):
         
         logger.debug(f"State update - decay_norm: {np.linalg.norm(decay_term):.4f}, "
                     f"impulse_norm: {np.linalg.norm(impulse_term):.4f}, "
-                    f"echo_norm: {np.linalg.norm(echo_term):.4f}")
+                    f"echo_norm: {np.linalg.norm(echo_term):.4f}, "
+                    f"dukkha_norm: {np.linalg.norm(dukkha_influence):.4f}")
         
         return self.current_state
     
@@ -427,11 +438,15 @@ class PathosLayer(PathosLayerInterface):
         # Compute homeostatic balance
         balance_metrics, _ = self.compute_homeostatic_balance(self.current_state)
         
+        # Get dukkha summary for richer emotional context
+        dukkha_summary = self.dukkha_engine.get_dukkha_summary()
+        
         return PathosState(
             vector=self.current_state.copy(),
             timestamp=int(time.time()),
             internal_reward=internal_reward,
-            homeostatic_balance=balance_metrics
+            homeostatic_balance=balance_metrics,
+            dukkha_state=dukkha_summary  # Add dukkha information
         )
     
     def set_state(self, state: np.ndarray) -> None:
@@ -704,3 +719,176 @@ class PathosLayer(PathosLayerInterface):
         influence = np.where(raw_update > 0, influence_magnitude, -influence_magnitude * 0.5)
         
         return influence
+    
+    def add_curiosity(self, question: str, context: Dict[str, Any] = None) -> None:
+        """
+        Add a curiosity or unresolved question to drive exploration.
+        
+        Args:
+            question: The curious question or knowledge gap
+            context: Optional context about the curiosity
+        """
+        self.dukkha_engine.add_curiosity(question, context or {})
+        logger.debug(f"Added curiosity to drive exploration: {question}")
+    
+    def add_goal(self, goal_description: str, target_value: float = 1.0) -> None:
+        """
+        Add a goal to create healthy goal-directed dissatisfaction.
+        
+        Args:
+            goal_description: Description of the goal
+            target_value: Target value for goal completion
+        """
+        self.dukkha_engine.add_goal(goal_description, target_value)
+        logger.debug(f"Added goal to create directed dissatisfaction: {goal_description}")
+    
+    def update_mastery_domain(self, domain: str, current_level: float, 
+                            improvement: float = 0.0) -> None:
+        """
+        Update mastery tracking to create mastery-driven dissatisfaction.
+        
+        Args:
+            domain: Name of the mastery domain
+            current_level: Current mastery level (0.0 to 1.0)
+            improvement: Recent improvement amount
+        """
+        self.dukkha_engine.update_mastery_domain(domain, current_level, improvement)
+    
+    def get_growth_suggestions(self) -> List[str]:
+        """
+        Get suggestions for actions that could address current dissatisfactions.
+        
+        Returns:
+            List of suggested actions to promote growth
+        """
+        dukkha_summary = self.dukkha_engine.get_dukkha_summary()
+        return self.dukkha_engine.suggest_growth_actions(dukkha_summary['dukkha_levels'])
+    
+    def get_emotional_state_description(self) -> str:
+        """
+        Get a rich description of the current emotional state including dukkha.
+        
+        Returns:
+            Human-readable description of emotional state
+        """
+        dukkha_summary = self.dukkha_engine.get_dukkha_summary()
+        total_dissatisfaction = dukkha_summary['total_dissatisfaction']
+        
+        # Base emotional state from pathos vector
+        state_energy = np.linalg.norm(self.current_state)
+        state_balance = 1.0 - np.std(np.abs(self.current_state))
+        
+        # Determine primary emotional tone
+        if total_dissatisfaction > 0.6:
+            if dukkha_summary['dukkha_levels'].get('stagnation_dissatisfaction', 0) > 0.5:
+                base_emotion = "Feeling restless and eager for change"
+            elif dukkha_summary['dukkha_levels'].get('curiosity_gap_tension', 0) > 0.4:
+                base_emotion = "Feeling curious and driven to explore"
+            elif dukkha_summary['dukkha_levels'].get('existential_questioning', 0) > 0.4:
+                base_emotion = "Feeling contemplative and searching for deeper meaning"
+            else:
+                base_emotion = "Feeling challenged and motivated to grow"
+        elif total_dissatisfaction > 0.3:
+            base_emotion = "Feeling mildly dissatisfied but purposeful"
+        else:
+            if state_energy > 5.0:
+                base_emotion = "Feeling energetic and content"
+            else:
+                base_emotion = "Feeling calm and balanced"
+        
+        # Add specific dissatisfaction notes
+        specific_notes = []
+        if dukkha_summary['dukkha_levels'].get('novelty_hunger', 0) > 0.4:
+            specific_notes.append("craving new experiences")
+        if dukkha_summary['dukkha_levels'].get('goal_frustration', 0) > 0.4:
+            specific_notes.append("frustrated with current progress")
+        if dukkha_summary['dukkha_levels'].get('mastery_challenge_pressure', 0) > 0.4:
+            specific_notes.append("seeking greater challenges")
+        
+        # Combine into full description
+        if specific_notes:
+            return f"{base_emotion}, {', '.join(specific_notes)}"
+        else:
+            return base_emotion
+    
+    def set_collector(self, collector):
+        """Set the collector for logging dukkha data to dashboard."""
+        self.collector = collector
+        self._log_dukkha_to_collector = self._create_dukkha_logger()
+    
+    def _create_dukkha_logger(self):
+        """Create a function to log dukkha data to the collector."""
+        def log_dukkha(dukkha_influences, total_dissatisfaction):
+            if hasattr(self.collector, 'metrics'):
+                # Create dukkha state data
+                dukkha_state = {
+                    'dukkha_levels': dukkha_influences,
+                    'total_dissatisfaction': total_dissatisfaction,
+                    'timestamp': time.time(),
+                    **self.dukkha_engine.get_dukkha_summary()
+                }
+                
+                # Add to collector metrics
+                if 'dukkha_states' not in self.collector.metrics:
+                    self.collector.metrics['dukkha_states'] = []
+                
+                self.collector.metrics['dukkha_states'].append(dukkha_state)
+                
+                # Limit history size
+                if len(self.collector.metrics['dukkha_states']) > 1000:
+                    self.collector.metrics['dukkha_states'] = self.collector.metrics['dukkha_states'][-500:]
+        
+        return log_dukkha
+    
+    def _compute_dukkha_influence(self, semantic_input: SemanticVector, 
+                                external_reward: float) -> np.ndarray:
+        """
+        Compute dukkha (dissatisfaction) influence to prevent stagnation and drive growth.
+        
+        This method introduces healthy dissatisfaction that motivates exploration,
+        learning, and development. Without dukkha, the system becomes complacent.
+        
+        Args:
+            semantic_input: Current semantic input
+            external_reward: Current external reward
+            
+        Returns:
+            Dukkha influence vector to add to state dynamics
+        """
+        # Extract recent actions and rewards for dukkha computation
+        recent_actions = []  # Would be populated from actual action history
+        recent_rewards = [external_reward] if external_reward is not None else []
+        
+        # Compute dukkha influences
+        dukkha_influences = self.dukkha_engine.compute_dukkha_influence(
+            self.current_state,
+            recent_actions,
+            recent_rewards,
+            context={
+                'semantic_input': semantic_input.embedding if semantic_input else [],
+                'current_reward': external_reward
+            }
+        )
+        
+        # Generate dissatisfaction impulse
+        dissatisfaction_impulse = self.dukkha_engine.generate_dissatisfaction_impulse(dukkha_influences)
+        
+        # Scale impulse to match state dimension
+        if len(dissatisfaction_impulse) != self.config.state_dimension:
+            if len(dissatisfaction_impulse) > self.config.state_dimension:
+                dissatisfaction_impulse = dissatisfaction_impulse[:self.config.state_dimension]
+            else:
+                padding = np.zeros(self.config.state_dimension - len(dissatisfaction_impulse))
+                dissatisfaction_impulse = np.concatenate([dissatisfaction_impulse, padding])
+        
+        # Log dukkha influence for debugging
+        total_dissatisfaction = sum(dukkha_influences.values()) / len(dukkha_influences)
+        if total_dissatisfaction > 0.3:  # Only log significant dissatisfaction
+            logger.info(f"🔥 DUKKHA ACTIVE - Total dissatisfaction: {total_dissatisfaction:.3f}, "
+                       f"Top sources: {sorted(dukkha_influences.items(), key=lambda x: x[1], reverse=True)[:2]}")
+        
+        # Log dukkha data to collector for dashboard visualization
+        if hasattr(self, '_log_dukkha_to_collector'):
+            self._log_dukkha_to_collector(dukkha_influences, total_dissatisfaction)
+        
+        return dissatisfaction_impulse
