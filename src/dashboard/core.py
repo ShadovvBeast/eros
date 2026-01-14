@@ -92,7 +92,7 @@ except ImportError:
 from .session_controls import SessionControlPanel
 from .log_system import LogAuditSystem
 from .tabs import (
-    HealthTab, HardwareTab, PathosTab, MemoryTab, MemoryTableTab,
+    HealthTab, HardwareTab, PathosTab, DukkhaTab, MemoryTab, MemoryTableTab,
     PreferenceTab, AttractorTab, PerformanceTab,
     ThreadManagementTab, LogAuditTab, ConfigTab
 )
@@ -222,6 +222,7 @@ class InteractiveDashboard:
         self.tabs['health'] = HealthTab(self.notebook, self.collector, self.hardware_monitor)
         self.tabs['hardware'] = HardwareTab(self.notebook, self.hardware_monitor)
         self.tabs['pathos'] = PathosTab(self.notebook, self.collector, self.pathos_states)
+        self.tabs['dukkha'] = DukkhaTab(self.notebook, self.collector)  # New dukkha tab
         self.tabs['memory'] = MemoryTab(self.notebook, self.memory_traces)
         self.tabs['memory_table'] = MemoryTableTab(self.notebook, self.memory_traces, self.session_manager)
         self.tabs['preference'] = PreferenceTab(self.notebook, self.collector)
@@ -423,6 +424,8 @@ class InteractiveDashboard:
             self.tabs['health'].collector = self.collector
         if 'pathos' in self.tabs:
             self.tabs['pathos'].collector = self.collector
+        if 'dukkha' in self.tabs:
+            self.tabs['dukkha'].collector = self.collector
         if 'preference' in self.tabs:
             self.tabs['preference'].collector = self.collector
         if 'attractor' in self.tabs:

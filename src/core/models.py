@@ -16,6 +16,7 @@ class PathosState:
     timestamp: int
     internal_reward: float
     homeostatic_balance: Dict[str, float]
+    dukkha_state: Optional[Dict[str, Any]] = None  # Dissatisfaction/challenge state
     
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary for persistence"""
@@ -23,7 +24,8 @@ class PathosState:
             'vector': self.vector.tolist(),
             'timestamp': self.timestamp,
             'internal_reward': self.internal_reward,
-            'homeostatic_balance': self.homeostatic_balance
+            'homeostatic_balance': self.homeostatic_balance,
+            'dukkha_state': self.dukkha_state
         }
     
     @classmethod
@@ -33,7 +35,8 @@ class PathosState:
             vector=np.array(data['vector']),
             timestamp=data['timestamp'],
             internal_reward=data['internal_reward'],
-            homeostatic_balance=data['homeostatic_balance']
+            homeostatic_balance=data['homeostatic_balance'],
+            dukkha_state=data.get('dukkha_state')
         )
 
 

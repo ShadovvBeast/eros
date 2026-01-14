@@ -30,6 +30,20 @@ class PathosConfig:
     c3: float = 0.8  # Novelty (affect)
     c4: float = 0.8  # Novelty (semantic)
     c5: float = 0.6  # Interest signal
+    
+    # Dukkha (dissatisfaction) engine configuration
+    dukkha_config: Dict[str, float] = field(default_factory=lambda: {
+        'base_dissatisfaction': 0.3,           # Base level of healthy dissatisfaction
+        'stagnation_threshold': 10,            # Cycles before stagnation detection
+        'curiosity_decay_rate': 0.95,          # How curiosity decays over time
+        'mastery_challenge_rate': 0.1,         # Rate of mastery challenge increase
+        'existential_questioning_rate': 0.05,  # Rate of existential questioning
+        'novelty_hunger_threshold': 0.8,       # Threshold for novelty craving
+        'goal_frustration_timeout': 24.0,      # Hours before goal frustration
+        'dukkha_influence_strength': 0.3,      # How much dukkha affects state dynamics
+        'enable_dukkha_logging': True,         # Whether to log dukkha to dashboard
+        'dukkha_memory_integration': True      # Whether to store dukkha in memory traces
+    })
 
 
 @dataclass

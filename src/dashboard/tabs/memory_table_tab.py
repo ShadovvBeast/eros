@@ -33,10 +33,11 @@ class MemoryTableTab(BaseTab):
         tree_frame = ttk.Frame(container)
         tree_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Define columns
+        # Define columns - now including dukkha information
         columns = (
             'Index', 'Timestamp', 'Salience', 'Reward', 'Intention', 
-            'State', 'Action', 'Observation', 'Reflection', 'Category'
+            'State', 'Action', 'Observation', 'Reflection', 'Category',
+            'Emotional State', 'Dissatisfaction', 'Dominant Dukkha'
         )
         
         self.tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=20)
@@ -52,7 +53,10 @@ class MemoryTableTab(BaseTab):
             'Action': 150,
             'Observation': 200,
             'Reflection': 200,
-            'Category': 100
+            'Category': 100,
+            'Emotional State': 180,
+            'Dissatisfaction': 100,
+            'Dominant Dukkha': 150
         }
         
         for col in columns:
@@ -274,6 +278,33 @@ class MemoryTableTab(BaseTab):
         # Determine category
         category = self._get_trace_category(trace)
         
+        # Extract dukkha information from metadata
+        emotional_state = "N/A"
+        dissatisfaction = "N/A"
+        dominant_dukkha = "N/A"
+        
+        if hasattr(trace, 'metadata') and trace.metadata:
+            # Emotional state
+            if 'emotional_state' in trace.metadata:
+                emotional_state = self._truncate_text(trace.metadata['emotional_state'], 35)
+            
+            # Total dissatisfaction
+            if 'total_dissatisfaction' in trace.metadata:
+                dissatisfaction_val = trace.metadata['total_dissatisfaction']
+                if isinstance(dissatisfaction_val, (int, float)):
+                    dissatisfaction = f"{dissatisfaction_val:.3f}"
+                    # Add color coding based on dissatisfaction level
+                    if dissatisfaction_val > 0.6:
+                        dissatisfaction = f"🔥 {dissatisfaction}"
+                    elif dissatisfaction_val > 0.3:
+                        dissatisfaction = f"⚡ {dissatisfaction}"
+                    else:
+                        dissatisfaction = f"😌 {dissatisfaction}"
+            
+            # Dominant dukkha type
+            if 'dominant_dukkha_type' in trace.metadata:
+                dominant_dukkha = self._truncate_text(trace.metadata['dominant_dukkha_type'], 25)
+        
         return (
             str(index + 1),
             timestamp,
@@ -284,7 +315,10 @@ class MemoryTableTab(BaseTab):
             action,
             observation,
             reflection,
-            category
+            category,
+            emotional_state,
+            dissatisfaction,
+            dominant_dukkha
         )
     
     def _get_trace_category(self, trace):
@@ -426,7 +460,8 @@ class MemoryTableTab(BaseTab):
         self.tree.insert('', tk.END, values=(
             "No data", "N/A", "N/A", "N/A", 
             "No memory traces available", "Start an agent session", 
-            "to see memory formation", "and trace data", "N/A", "N/A"
+            "to see memory formation", "and trace data", "N/A", "N/A",
+            "N/A", "N/A", "N/A"
         ))
         
         self.stats_label.config(text="Total: 0 traces")
@@ -436,7 +471,8 @@ class MemoryTableTab(BaseTab):
         self.tree.insert('', tk.END, values=(
             "Error", "N/A", "N/A", "N/A", 
             f"Error: {error_msg}", "Check logs", 
-            "for details", "N/A", "N/A", "N/A"
+            "for details", "N/A", "N/A", "N/A",
+            "N/A", "N/A", "N/A"
         ))
         
         self.stats_label.config(text="Error loading data")
@@ -462,7 +498,8 @@ class MemoryTableTab(BaseTab):
                     # Write header
                     writer.writerow([
                         'Index', 'Timestamp', 'Salience', 'Reward', 'Intention',
-                        'State', 'Action', 'Observation', 'Reflection', 'Category'
+                        'State', 'Action', 'Observation', 'Reflection', 'Category',
+                        'Emotional State', 'Dissatisfaction', 'Dominant Dukkha'
                     ])
                     
                     # Write data
@@ -569,7 +606,8 @@ class MemoryTableTab(BaseTab):
                 # Write header
                 writer.writerow([
                     'Index', 'Timestamp', 'Salience', 'Reward', 'Intention',
-                    'State', 'Action', 'Observation', 'Reflection', 'Category'
+                    'State', 'Action', 'Observation', 'Reflection', 'Category',
+                    'Emotional State', 'Dissatisfaction', 'Dominant Dukkha'
                 ])
                 
                 # Write data

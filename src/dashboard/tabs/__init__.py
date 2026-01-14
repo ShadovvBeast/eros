@@ -7,6 +7,7 @@ Individual tab implementations for the dashboard.
 from .health_tab import HealthTab
 from .hardware_tab import HardwareTab
 from .pathos_tab import PathosTab
+from .dukkha_tab import DukkhaTab
 from .memory_tab import MemoryTab
 from .memory_table_tab import MemoryTableTab
 from .preference_tab import PreferenceTab
@@ -20,6 +21,7 @@ __all__ = [
     'HealthTab',
     'HardwareTab', 
     'PathosTab',
+    'DukkhaTab',
     'MemoryTab',
     'MemoryTableTab',
     'PreferenceTab',

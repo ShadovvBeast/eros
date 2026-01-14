@@ -190,9 +190,9 @@ class AutonomousRewardSystem(AutonomousRewardSystemInterface):
             total_reward = (coherence_reward + growth_reward + integration_reward + 
                            elegance_reward + emergence_reward)
             
-            # Reduced positive bias - just enough to prevent complete stagnation
-            # but not so much that it masks failure signals
-            positive_bias = 0.2  # Reduced from 0.5 to 0.2
+            # Minimal positive bias - let dukkha drive motivation instead of artificial rewards
+            # The main positive signal should come from successful tool interactions and dukkha resolution
+            positive_bias = 0.05  # Reduced from 0.2 to 0.05 - dukkha provides the growth drive
             total_reward += positive_bias
             
             total_reward = self.error_handler.handle_reward_overflow(total_reward, "total")

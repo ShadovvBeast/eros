@@ -299,6 +299,11 @@ class AutonomousAgent:
             )
             
             if self.pathos.should_write_memory(salience):
+                # Get current dukkha state for memory storage
+                dukkha_summary = self.pathos.dukkha_engine.get_dukkha_summary()
+                emotional_description = self.pathos.get_emotional_state_description()
+                growth_suggestions = self.pathos.get_growth_suggestions()
+                
                 # Create comprehensive memory trace with all agent cycle components
                 memory_trace = MemoryTrace(
                     affect_state=new_state.copy(),
@@ -309,7 +314,13 @@ class AutonomousAgent:
                     metadata={
                         'cycle': self.cycle_count,
                         'intention': intention.description,
-                        'tool_used': tool_call.tool_name if tool_call else None
+                        'tool_used': tool_call.tool_name if tool_call else None,
+                        # Add dukkha information to memory metadata
+                        'dukkha_state': dukkha_summary,
+                        'emotional_state': emotional_description,
+                        'growth_suggestions': growth_suggestions,
+                        'total_dissatisfaction': dukkha_summary.get('total_dissatisfaction', 0.0),
+                        'dominant_dukkha_type': self._get_dominant_dukkha_type(dukkha_summary.get('dukkha_levels', {}))
                     }
                 )
                 
@@ -601,6 +612,22 @@ class AutonomousAgent:
             capabilities.update(strong_preferences)
         
         return capabilities
+    
+    def _get_dominant_dukkha_type(self, dukkha_levels: Dict[str, float]) -> str:
+        """Get the dominant (highest) dukkha type from current levels."""
+        if not dukkha_levels:
+            return "none"
+        
+        # Find the dukkha type with highest level
+        dominant_type = max(dukkha_levels.items(), key=lambda x: x[1])
+        
+        # Only return if it's significant (> 0.1)
+        if dominant_type[1] > 0.1:
+            # Convert to human-readable format
+            type_name = dominant_type[0].replace('_', ' ').title()
+            return f"{type_name} ({dominant_type[1]:.3f})"
+        else:
+            return "low dissatisfaction"
     
     def _identify_learning_opportunities(self) -> List[str]:
         """Identify current learning opportunities for autonomous reward system."""
